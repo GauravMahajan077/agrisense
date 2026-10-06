@@ -20,6 +20,7 @@ For actual pasting, use the generated per-cell files — one file per cell means
 agri/
   agrisense_kaggle.py    <- source of truth, 23 cells
   split_cells.py         <- run this after any edit to refresh cells/
+  field_test.py          <- eval-only loader for real field photos (section 7.5)
   cells/
     README.md            <- paste order table
     01_cell_0_environment_probe.py
@@ -511,6 +512,34 @@ Notes:
 
 ---
 
+## 7.5 Field-test loader (eval only)
+
+The crawler (Cell 17) tests on web images. For **real farm photos**, use the standalone loader
+`agri/field_test.py` — it runs anywhere (laptop, phone, edge box) with just numpy + Pillow +
+the TFLite runtime, and needs no training pipeline.
+
+```
+python field_test.py --bundle agrisense_bundle.zip --photos /path/to/field/photos
+```
+
+It loads the deployed `model.tflite` + `class_names.json` from the bundle and applies the exact
+Cell 18 preprocessing contract (RGB → LANCZOS resize to 256×256 → float32 0–255, **no /255**),
+so the number it reports is what the shipped model actually does on your photos.
+
+Photos layout: one subfolder per class (`class/*.jpg`, same as the crawler), or a flat folder
+with `--labels labels.csv` (`path,class`). Unknown class folders are skipped with a warning.
+
+Report: per-class precision/recall/F1, macro-F1, accuracy, worst-class recall, bootstrap 95% CI,
+and the abstain rule (coverage + accuracy/macro-F1 on covered). Writes `predictions.csv` and
+`confusion.csv` next to the photos (or `--out DIR`). `--abstain` overrides the threshold shipped
+in the contract; `--limit N` caps images per class for a quick check.
+
+The loader is eval-only by design — it never trains, never crawls, never writes back to the
+model. It is the honest test: if the field photos are real farm shots, this number is the
+real-world performance estimate.
+
+---
+
 ## 8. Run order
 
 Cell numbers below match the filenames in `cells/`, so the table and the files line up.
@@ -528,6 +557,7 @@ Cell numbers below match the filenames in `cells/`, so the table and the files l
 | 16.5 | `18_cell_16_5_source_held_out_eval_headline_metric.py` | **The headline number.** Read the source-held-out macro-F1, its bootstrap CI, and the abstain coverage. |
 | 17 | `19_cell_17_crawler_quarantined.py` | Field stress test. |
 | 18–19 | `20_cell_18_export.py`, `21_cell_19_*.py` | Export, **check the TFLite parity number**, download `agrisense_bundle.zip`. |
+| — | `field_test.py` (section 7.5) | After the run: test the downloaded bundle on real field photos. Eval only, runs anywhere. |
 
 Stop-and-read checkpoints are cells **4, 5, 15 and 16.5**. Cells 0–9 never need a GPU.
 

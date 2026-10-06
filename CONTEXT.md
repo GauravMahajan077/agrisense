@@ -14,9 +14,10 @@ Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rul
   Run: `python -B verify.py`.
 
 ## Decisions already made (do not relitigate)
-1. **`agrisense.py` + 3-cell notebook restructure is DEFERRED** until Phases 0–4 pass.
-   1,824 lines of shared globals cannot be validated without a Kaggle run. `PIPELINE_VERSION`
-   (Phase 1/2) already solves the stale-paste problem on the Kaggle side.
+1. **`agrisense.py` + 3-cell notebook restructure is NEXT** — Phases 0–4 all pass, so the
+   deferral condition is met. 1,824 lines of shared globals still cannot be validated without a
+   Kaggle run; `PIPELINE_VERSION` (Phase 1/2) solves the stale-paste problem meanwhile. The
+   restructure is the next phase and must be proposed + approved before any work.
 2. **All logic unit tests were deleted** (see cleanup below) because every one tested a
    *hand-copied re-implementation*, not the shipped source. Proof: `test_cell5_sweep.py` contained
    its own `clusters_at` with the `return cid, 0` fix, so the suite reported ALL PASS while
@@ -49,8 +50,8 @@ Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rul
 | **1** — P0 crash fixes | ✅ DONE (commit `d9492b7`) |
 | **2** — P1 simplify (remove sweep/LSH/cache/`effective`/`oversample`/finetune-crawl, `multi_gpu: False`, smoke mode, `PIPELINE_VERSION`, pin pip, UA email, crawl byte cap) | ✅ DONE (commit `f01e9f3`) |
 | **3** — P2 honest eval (8-variant D4 brute force, same-class merge only, cross-class dropped from val/test, source-held-out split, macro-F1 per source + bootstrap CI, abstain rule) | ✅ DONE (commit `ab04f7d`) |
-| **4** — P3 field-test loader (eval only) | ⬜ NEXT |
-| restructure → `agrisense.py` + 3-cell notebook | ⬜ deferred until 0–4 pass |
+| **4** — P3 field-test loader (eval only) | ✅ DONE (commit `08bf8a2`) |
+| restructure → `agrisense.py` + 3-cell notebook | ⬜ NEXT (0–4 all pass) |
 
 ## Phase 1 — what was actually done (commit `d9492b7`)
 1. `clusters_at`: `if not nd: return cid` → `return cid, 0` (fixes `ValueError: too many values to unpack` at lines 905/924).
@@ -150,6 +151,38 @@ specifically so the user can paste a fast Kaggle run; that paste is the Phase 2 
 **Verification limits:** same as Phases 1–2 — local TF 2.21 ≠ Kaggle TF 2.20. The Phase 3
 acceptance gate is a user-pasted Kaggle smoke run showing the new Cell 5 dedupe output, the
 Cell 6 cross-class move, and the Cell 16.5 held-out eval.
+
+## Phase 4 — what was actually done (commit `08bf8a2`)
+1. **`agri/field_test.py` (new, standalone):** eval-only loader for real field photos. numpy +
+   PIL + TFLite interpreter (tf.lite.Interpreter with tflite_runtime fallback). Loads
+   `model.tflite` + `class_names.json` from `agrisense_bundle.zip` (or direct paths), applies
+   the exact Cell 18 preprocessing contract (RGB → LANCZOS resize to `recommended_input_size`
+   256×256 → float32 0–255, **no /255**). Photo discovery: subfolder-per-class or `--labels`
+   CSV, unknown classes skipped with a warning, `--limit` caps per class. Report: per-class
+   P/R/F1, macro-F1, accuracy, worst-class recall, bootstrap 95% CI, abstain coverage +
+   acc/macro-F1 on covered. Writes `predictions.csv` + `confusion.csv`. CLI under
+   `if __name__ == "__main__"` so it is importable. Never trains, never crawls.
+2. **Cell 18:** contract dict now ships `"abstain_threshold": CFG["abstain_threshold"]` (the
+   loader reads it; `--abstain` overrides).
+3. **verify.py:** Phase 4 markers — `field_test.py` exists/parses, never `/255`, uses LANCZOS,
+   reads the contract, has abstain; Cell 18 contract ships `abstain_threshold`.
+4. **`agri/test_phase4_field_test.py`** (user-approved): imports the SHIPPED loader directly.
+   Preprocessing contract (shape/dtype/0-255/no-resize on 256×256), photo discovery (subfolder,
+   CSV, limit, unknown filter), metrics (macro-F1 = 11/15, acc 0.75, worst recall 5/8), abstain
+   (coverage 0.75, acc 1.0), bootstrap CI ordering, and an end-to-end run on a tiny locally
+   built TFLite model (4 synthetic images, both CSVs written).
+
+**Validation (all real, pasted in session):**
+- `split_cells.py` round-trip + `verify.py` → ALL PASS, exit 0 (23 cells).
+- `python -B test_phase3_dedupe.py` → ALL PASS, exit 0 (regression).
+- `python -B test_phase4_field_test.py` → ALL PASS, exit 0 (16 checks incl. real TFLite e2e).
+- Two bugs caught by the tests and fixed before commit: (a) JPEG is lossy → the 256×256
+  no-resize check now uses PNG; (b) `run_eval` passed argmax indices to `abstain_report`
+  instead of the full probability matrix → now collects `probs` and passes them.
+
+**Verification limits:** the loader itself is fully testable locally (TF 2.21 + PIL installed)
+and was tested end-to-end on a real TFLite model. The only thing not verified locally is the
+actual `agrisense_bundle.zip` from a Kaggle run — that needs the Phase 2/3 smoke-run paste.
 
 ## Headline metric (the number that matters)
 Source-held-out: train on `anshul6` + `indo3`, test on `dedeikh` across the 5 shared classes
