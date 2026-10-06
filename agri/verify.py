@@ -59,7 +59,7 @@ if c5:
     check("cell 5 is not stale: itertuples bug is gone", "itertuples()" not in t)
     check("cell 5 has the source_alias pair report", "check the source_alias mapping" in t)
     check("cell 5 has the cross-source counter", "clusters spanning >1 source" in t)
-    check("cell 5 has the PAIRS label", "key PAIRS merged" in t)
+    check("cell 5 has the pairs-merged label", "key pairs merged" in t)
     check("cell 5 has largest-cluster composition", "largest cluster composition" in t)
 
 c2 = next((f for f in cells if "cell_2" in f.name), None)
