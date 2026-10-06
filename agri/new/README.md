@@ -3,8 +3,8 @@
 Kaggle pipeline. `agrisense.py` is the module — all logic in a `Pipeline` class with one
 method per stage. `agrisense_notebook.py` is a thin 3-cell wrapper (CONFIG → MODULE → RUN)
 that `split_cells.py` expands into paste-ready cells. The legacy 23-cell
-`agrisense_kaggle.py` is kept for reference; its cell numbers map 1:1 to the module's stage
-methods.
+`old/agrisense_kaggle.py` is kept for reference; its cell numbers map 1:1 to the module's
+stage methods.
 
 **Your laptop does nothing but copy text.** 8 GB RAM plus thermal throttling is exactly the
 workload that kills laptop GPUs. Not one line of this runs locally.
@@ -23,29 +23,33 @@ For actual pasting, use the generated per-cell files — one file per cell means
 
 ```
 agri/
-  agrisense.py           <- module: all logic (Pipeline class, 21 stages, run())
-  agrisense_notebook.py  <- 3-cell wrapper: CONFIG -> MODULE -> RUN
-  agrisense_kaggle.py    <- legacy 23-cell notebook, kept for reference
-  split_cells.py         <- run this after any edit to refresh cells/
-  field_test.py          <- eval-only loader for real field photos (section 7.5)
-  cells/
-    README.md            <- paste order table
-    01_cell_1_config_the_only_cell_you_edit.py
-    02_cell_2_module_generated_from_agrisense_py_by_split_c.py
-    03_cell_3_run_prints_pipeline_version_and_runs_the_whol.py
+  old/                      <- OLD stuff, ignore it
+    agrisense_kaggle.py     <- legacy 23-cell notebook, kept for reference only
+  new/                      <- NEW stuff, this is what you use
+    agrisense.py            <- module: all logic (Pipeline class, 21 stages, run())
+    agrisense_notebook.py   <- 3-cell wrapper: CONFIG -> MODULE -> RUN
+    split_cells.py          <- run this after any edit to refresh cells/
+    field_test.py           <- eval-only loader for real field photos (section 7.5)
+    cells/
+      README.md             <- paste order table
+      01_cell_1_config_the_only_cell_you_edit.py
+      02_cell_2_module_generated_from_agrisense_py_by_split_c.py
+      03_cell_3_run_prints_pipeline_version_and_runs_the_whol.py
 ```
 
 Rules:
 
 - `.md` files go into a **Markdown** cell; `.py` files into a **Code** cell.
 - Paste top to bottom, in the numbered order.
-- After editing `agrisense.py` or `agrisense_notebook.py`, run `python split_cells.py` to
-  resync. It resolves the include directive and verifies a round-trip against the combined
-  source first, so a broken split fails loudly instead of silently producing a partial cell.
+- After editing `agrisense.py` or `agrisense_notebook.py`, run `python split_cells.py` (from
+  the `agri/new/` directory) to resync. It resolves the include directive and verifies a
+  round-trip against the combined source first, so a broken split fails loudly instead of
+  silently producing a partial cell.
 - Only **Cell 1 (`CFG`)** normally needs editing, and it is easiest to edit directly in Kaggle
   rather than round-tripping the file. `verify.py` AST-compares Cell 1's `CFG` against the
   module's `DEFAULT_CFG` so the two cannot drift.
-- The legacy 23-cell notebook is regenerable with `python split_cells.py agrisense_kaggle.py`.
+- The legacy 23-cell notebook is regenerable with
+  `python split_cells.py ../old/agrisense_kaggle.py` (this overwrites `cells/`).
 
 ---
 
@@ -524,7 +528,7 @@ Notes:
 ## 7.5 Field-test loader (eval only)
 
 The crawler (Cell 17) tests on web images. For **real farm photos**, use the standalone loader
-`agri/field_test.py` — it runs anywhere (laptop, phone, edge box) with just numpy + Pillow +
+`agri/new/field_test.py` — it runs anywhere (laptop, phone, edge box) with just numpy + Pillow +
 the TFLite runtime, and needs no training pipeline.
 
 ```
@@ -560,7 +564,8 @@ Cell numbers below match the filenames in `cells/`, so the table and the files l
 | 3 | `03_cell_3_run_*.py` | `run(CFG)` — prints `PIPELINE_VERSION`, runs every stage in order. |
 | — | `field_test.py` (section 7.5) | After the run: test the downloaded bundle on real field photos. Eval only, runs anywhere. |
 
-The 21 stages inside Cell 2 map 1:1 to the legacy 23-cell notebook (`agrisense_kaggle.py`):
+The 21 stages inside Cell 2 map 1:1 to the legacy 23-cell notebook
+(`old/agrisense_kaggle.py`):
 `env → deps → fetch → manifest → dedupe → split → min_class → class_weights → preload →
 pipelines → macro_f1 → make_model → callbacks → train → val_report → test_report → held_out
 → crawl → export → bundle → cleanup`. Stop-and-read checkpoints are the manifest, the

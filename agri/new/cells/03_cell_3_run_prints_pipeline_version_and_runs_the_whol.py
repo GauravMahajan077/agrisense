@@ -2,4 +2,4 @@
 run(CFG)
 
 # Optional, after a full (non-smoke) run: evaluate the exported bundle on your own photos
-# with agri/field_test.py (see README section 7.5).
+# with agri/new/field_test.py (see README section 7.5).

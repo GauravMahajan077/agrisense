@@ -1,4 +1,3 @@
-# CELL 2 — MODULE. Generated from agrisense.py by split_cells.py. Do not hand-edit.
 """Agrisense — rice leaf disease pipeline (single module).
 
 The Kaggle notebook is a thin 3-cell wrapper: CONFIG -> MODULE -> RUN. This module holds
@@ -1742,7 +1741,7 @@ class Pipeline:
                 "val_macro_f1": round(float(np.nanmean(self.f1_va)), 4),
                 "test_macro_f1": round(float(np.nanmean(self.f1_te)), 4),
                 "worst_class_recall": round(float(self.rec_te.min()), 4),
-                "abstain_threshold": self.cfg["abstain_threshold"],   # read by agri/field_test.py
+                "abstain_threshold": self.cfg["abstain_threshold"],   # read by agri/new/field_test.py
             }
             (self.WORK / "class_names.json").write_text(json.dumps(self.contract, indent=2))
             print(f"\nDECLARED {self.NC} == OUTPUT {self.clean.output_shape[-1]}  "

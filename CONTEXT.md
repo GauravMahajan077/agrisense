@@ -6,24 +6,24 @@ Session state file. Updated at the end of every phase. Committed to git.
 Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rules live in
 [`AGENTS.md`](AGENTS.md) — that file is authoritative for *how* to work here.
 
-- **Module (source of truth):** `agri/agrisense.py` — `Pipeline` class, 21 stage methods, `run(cfg)`.
-- **Notebook wrapper:** `agri/agrisense_notebook.py` — 3 cells (CONFIG → MODULE → RUN); Cell 2 is
+- **Module (source of truth):** `agri/new/agrisense.py` — `Pipeline` class, 21 stage methods, `run(cfg)`.
+- **Notebook wrapper:** `agri/new/agrisense_notebook.py` — 3 cells (CONFIG → MODULE → RUN); Cell 2 is
   generated from the module via the `# %% include:agrisense.py` directive.
-- **Legacy:** `agri/agrisense_kaggle.py` — 23 `# %%` cells (1 markdown + 22 code), kept on purpose.
-- **Generated output:** `agri/cells/*` — produced by `python split_cells.py`, never hand-edited.
-- **`agri/split_cells.py`** — generator *and* round-trip verifier (resolves the include directive;
+- **Legacy:** `agri/old/agrisense_kaggle.py` — 23 `# %%` cells (1 markdown + 22 code), kept on purpose.
+- **Generated output:** `agri/new/cells/*` — produced by `python split_cells.py`, never hand-edited.
+- **`agri/new/split_cells.py`** — generator *and* round-trip verifier (resolves the include directive;
   every non-empty line of every cell must appear in the resolved source, in order).
-- **`agri/verify.py`** — the only test that reads the REAL source and the REAL generated cells.
-  Run: `python -B verify.py`.
+- **`agri/new/verify.py`** — the only test that reads the REAL source and the REAL generated cells.
+  Run from `agri/new/`: `python -B verify.py`.
 
 ## Decisions already made (do not relitigate)
 1. **`agrisense.py` + 3-cell notebook restructure is DONE** (Phase 5). The legacy
-   `agrisense_kaggle.py` is kept on purpose (user decision). The notebook is self-contained:
+   `old/agrisense_kaggle.py` is kept on purpose (user decision). The notebook is self-contained:
    Cell 2 = module source via the include directive, no dataset upload, no re-upload on changes.
 2. **All logic unit tests were deleted** (see cleanup below) because every one tested a
    *hand-copied re-implementation*, not the shipped source. Proof: `test_cell5_sweep.py` contained
    its own `clusters_at` with the `return cid, 0` fix, so the suite reported ALL PASS while
-   `agrisense_kaggle.py` line 783 still crashed. False confidence is worse than no tests.
+   `old/agrisense_kaggle.py` line 783 still crashed. False confidence is worse than no tests.
    Validation is now `split_cells.py` (round-trip) + `verify.py` (source checks).
 3. **`.opencode - Copy/` is kept deliberately** (personal backup, 159.6 MB, gitignored — do not delete).
 4. If a phase genuinely needs a unit test (e.g. the new brute-force dedupe), ASK before creating a file.
@@ -138,7 +138,7 @@ specifically so the user can paste a fast Kaggle run; that paste is the Phase 2 
    both held-out and in-source test, writes `source_held_out.csv`.
 7. **Cell 17:** abstain line added to field stress test output.
 8. **verify.py:** 23 cells / 22 boundaries / 22 code cells; Phase 3 markers for Cells 1/4/5/6/16.5/17.
-9. **`agri/test_phase3_dedupe.py`** (user-approved): AST-extracts the SHIPPED `d4_dist_matrix`,
+9. **`agri/new/test_phase3_dedupe.py`** (user-approved): AST-extracts the SHIPPED `d4_dist_matrix`,
    `brute_clusters`, `cross_class_mask`, `leak_scan`; 16 checks — identity/symmetry/chunking,
    D4-min over variant orbits (0 and 1-bit cases), same-class-only merging, cross-class flagging,
    leak detection — ALL PASS.
@@ -155,7 +155,7 @@ acceptance gate is a user-pasted Kaggle smoke run showing the new Cell 5 dedupe 
 Cell 6 cross-class move, and the Cell 16.5 held-out eval.
 
 ## Phase 4 — what was actually done (commit `08bf8a2`)
-1. **`agri/field_test.py` (new, standalone):** eval-only loader for real field photos. numpy +
+1. **`agri/new/field_test.py` (new, standalone):** eval-only loader for real field photos. numpy +
    PIL + TFLite interpreter (tf.lite.Interpreter with tflite_runtime fallback). Loads
    `model.tflite` + `class_names.json` from `agrisense_bundle.zip` (or direct paths), applies
    the exact Cell 18 preprocessing contract (RGB → LANCZOS resize to `recommended_input_size`
@@ -168,7 +168,7 @@ Cell 6 cross-class move, and the Cell 16.5 held-out eval.
    loader reads it; `--abstain` overrides).
 3. **verify.py:** Phase 4 markers — `field_test.py` exists/parses, never `/255`, uses LANCZOS,
    reads the contract, has abstain; Cell 18 contract ships `abstain_threshold`.
-4. **`agri/test_phase4_field_test.py`** (user-approved): imports the SHIPPED loader directly.
+4. **`agri/new/test_phase4_field_test.py`** (user-approved): imports the SHIPPED loader directly.
    Preprocessing contract (shape/dtype/0-255/no-resize on 256×256), photo discovery (subfolder,
    CSV, limit, unknown filter), metrics (macro-F1 = 11/15, acc 0.75, worst recall 5/8), abstain
    (coverage 0.75, acc 1.0), bootstrap CI ordering, and an end-to-end run on a tiny locally
@@ -187,7 +187,7 @@ and was tested end-to-end on a real TFLite model. The only thing not verified lo
 actual `agrisense_bundle.zip` from a Kaggle run — that needs the Phase 2/3 smoke-run paste.
 
 ## Phase 5 — what was actually done (restructure, commit `eec8434`)
-1. **`agri/agrisense.py` (new, source of truth):** all logic in a `Pipeline` class — 21 stage
+1. **`agri/new/agrisense.py` (new, source of truth):** all logic in a `Pipeline` class — 21 stage
    methods (1:1 with the legacy 23-cell notebook) + `run(cfg)` entry point that prints
    `PIPELINE_VERSION` and calls the stages in order. **No `__main__` pipeline block** (in a
    notebook `__name__ == "__main__"`, so a block there would fire on paste). Module-level
@@ -199,21 +199,21 @@ actual `agrisense_bundle.zip` from a Kaggle run — that needs the Phase 2/3 smo
    of use (pip-installed by `deps()`; a fresh Kaggle session has none of them); env vars set at
    module top before the tensorflow import; model stage renamed `make_model()` so it does not
    shadow `self.model`.
-3. **`agri/agrisense_notebook.py` (new):** 3-cell wrapper — Cell 1 CONFIG (`CFG` dict, the only
+3. **`agri/new/agrisense_notebook.py` (new):** 3-cell wrapper — Cell 1 CONFIG (`CFG` dict, the only
    cell you edit), Cell 2 MODULE (`# %% include:agrisense.py` directive), Cell 3 RUN
    (`run(CFG)`). Self-contained when pasted: no dataset upload, no re-upload on changes.
-4. **`agri/split_cells.py`:** SRC is now argv-configurable (default `agrisense_notebook.py`;
-   `python split_cells.py agrisense_kaggle.py` regenerates the legacy cells); new
+4. **`agri/new/split_cells.py`:** SRC is now argv-configurable (default `agrisense_notebook.py`;
+   `python split_cells.py ../old/agrisense_kaggle.py` regenerates the legacy cells); new
    `resolve_includes()` replaces `# %% include:<path>` lines with the referenced file's content
    before parse + round-trip verify.
-5. **`agri/verify.py`:** rewritten for Phase 5 — module parses, `Pipeline` has all 21 stage
+5. **`agri/new/verify.py`:** rewritten for Phase 5 — module parses, `Pipeline` has all 21 stage
    methods, `run()` calls them in order, no `__main__` block, every entry point prints
    `PIPELINE_VERSION`, smoke wired through manifest/train/export/bundle/crawl, inference paths
    never divide by 255 (AST-based, comments don't count), lazy imports, audit markers; notebook
    has 4 cells (1 md + 3 code), Cell 1 CFG AST-matches `DEFAULT_CFG`, include directive present;
    generated cells = 3 code cells, MODULE cell not stale (ends with current module); legacy
    notebook kept + parses + 23 cells; field_test.py + README checks kept.
-6. **`agri/test_phase3_dedupe.py`:** retargeted from `agrisense_kaggle.py` to `agrisense.py` —
+6. **`agri/new/test_phase3_dedupe.py`:** retargeted from `agrisense_kaggle.py` to `agrisense.py` —
    the four helpers are now `Pipeline` methods (none touch `self`), so they are AST-extracted
    from the class and bound to a dummy instance.
 

@@ -6,8 +6,8 @@ boundaries and copying a range. One file per cell means Ctrl+A, Ctrl+C, paste.
 The combined notebook source stays the single source of truth. Edit it (or edit the
 matching file in cells/, then re-run this to resync) and re-run:
 
-    python split_cells.py                 # default: agrisense_notebook.py (3 cells)
-    python split_cells.py agrisense_kaggle.py   # legacy 23-cell notebook
+    python split_cells.py                       # default: agrisense_notebook.py (3 cells)
+    python split_cells.py ../old/agrisense_kaggle.py   # legacy 23-cell notebook
 
 The default notebook is a thin 3-cell wrapper around `agrisense.py`. Its MODULE cell is
 generated from the module via the `# %% include:agrisense.py` directive: the directive line
@@ -168,8 +168,8 @@ def main() -> int:
         "  hand-edit it. Cell 3 (RUN) calls `run(CFG)`.",
         "- Add Input is far less error-prone than pasting cell 1's defaults blindly: if you",
         "  change `CFG['sources']` here, change it in Kaggle too.",
-        "- The legacy 23-cell notebook is `agrisense_kaggle.py`; regenerate its cells with",
-        "  `python split_cells.py agrisense_kaggle.py`.",
+        "- The legacy 23-cell notebook is `../old/agrisense_kaggle.py`; regenerate its cells with",
+        "  `python split_cells.py ../old/agrisense_kaggle.py` (this overwrites cells/).",
         "",
     ]
     (OUT / "README.md").write_text("\n".join(md), encoding="utf-8")

@@ -1,6 +1,6 @@
 """Single source of truth for verifying the Phase 5 restructure.
 
-Run from the agri/ directory:  python -B verify.py
+Run from the agri/new/ directory:  python -B verify.py
 
 Checks:
   * agrisense.py            — the module: parses, Pipeline has all 21 stage methods,
@@ -11,7 +11,7 @@ Checks:
                               Cell 3 calls run(CFG).
   * cells/                  — generated from the notebook: 3 code cells, all parse,
                               MODULE cell is not stale, CONFIG cell matches.
-  * agrisense_kaggle.py     — legacy 23-cell notebook, kept on purpose, still parses.
+  * ../old/agrisense_kaggle.py — legacy 23-cell notebook, kept on purpose, still parses.
   * field_test.py           — the field-test loader (Phase 4).
   * README.md               — key claims.
 """
@@ -231,7 +231,7 @@ if run_cell:
     check("RUN cell calls run(CFG)", "run(CFG)" in run_cell.read_text(encoding="utf-8"))
 
 print("\n=== legacy: agrisense_kaggle.py ===")
-leg = pathlib.Path("agrisense_kaggle.py")
+leg = pathlib.Path("../old/agrisense_kaggle.py")
 check("legacy notebook kept", leg.exists())
 if leg.exists():
     lsrc = leg.read_text(encoding="utf-8")

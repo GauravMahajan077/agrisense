@@ -1,4 +1,4 @@
-"""Phase 4 unit tests for the field-test loader (agri/field_test.py).
+"""Phase 4 unit tests for the field-test loader (agri/new/field_test.py).
 
 Imports the SHIPPED loader directly (it is the artifact, not a copy) and tests the
 preprocessing contract, photo discovery, metrics, abstain, bootstrap, and an end-to-end run

@@ -20,5 +20,5 @@ edit the combined file and re-run `python split_cells.py`.
   hand-edit it. Cell 3 (RUN) calls `run(CFG)`.
 - Add Input is far less error-prone than pasting cell 1's defaults blindly: if you
   change `CFG['sources']` here, change it in Kaggle too.
-- The legacy 23-cell notebook is `agrisense_kaggle.py`; regenerate its cells with
-  `python split_cells.py agrisense_kaggle.py`.
+- The legacy 23-cell notebook is `../old/agrisense_kaggle.py`; regenerate its cells with
+  `python split_cells.py ../old/agrisense_kaggle.py` (this overwrites cells/).
