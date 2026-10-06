@@ -1,0 +1,88 @@
+# CELL 17 — crawler, quarantined
+# NOT bulk-injected into training: web results are 20-40% mislabelled. Default role is a
+# held-out field stress test. Wikimedia is tried first because it does not block datacentre
+# IPs; DuckDuckGo usually does.
+import requests
+
+CR = WORK / "field_crawl"; CR.mkdir(parents=True, exist_ok=True)
+prov = []
+SESS = requests.Session()
+# Wikimedia's UA policy asks for a descriptive agent with contact info.
+SESS.headers.update({"User-Agent": "AgrisenseResearch/1.0 (academic rice-disease model; "
+                                   "contact: set-your-email-here)"})
+
+def wiki_urls(q, n):
+    r = SESS.get("https://commons.wikimedia.org/w/api.php", timeout=20, params={
+        "action": "query", "format": "json", "generator": "search",
+        "gsrsearch": f"filetype:bitmap {q}", "gsrnamespace": "6", "gsrlimit": str(n*2),
+        "prop": "imageinfo", "iiprop": "url|extmetadata", "iiurlwidth": "640"})
+    r.raise_for_status()
+    for pg in (r.json().get("query", {}).get("pages", {}) or {}).values():
+        ii = (pg.get("imageinfo") or [{}])[0]
+        if ii.get("thumburl"):
+            lic = (ii.get("extmetadata") or {}).get("LicenseShortName", {}).get("value", "?")
+            yield ii["thumburl"], lic
+
+def ddg_urls(q, n):
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        try: from duckduckgo_search import DDGS
+        except ImportError: return
+    try:
+        with DDGS() as d:
+            for r in d.images(q, max_results=n*2):
+                yield r["image"], "web-search-license-unknown"
+    except Exception as e:
+        print(f"   ddg blocked (datacentre IP): {str(e)[:60]}")
+
+def crawl():
+    t0 = time.time()
+    for cls, queries in CFG["crawl"]["queries"].items():
+        d = CR / cls; d.mkdir(exist_ok=True); got = 0
+        stop = False
+        for q in queries:
+            for pv in CFG["crawl"]["providers"]:
+                if got >= CFG["crawl"]["per_class"] or time.time()-t0 > CFG["crawl"]["max_seconds"]:
+                    stop = True; break
+                gen = (wiki_urls(q, CFG["crawl"]["per_class"]) if pv == "wikimedia"
+                       else ddg_urls(q, CFG["crawl"]["per_class"]))
+                try:
+                    for url, lic in gen:
+                        if got >= CFG["crawl"]["per_class"]: break
+                        try:
+                            with Image.open(io.BytesIO(SESS.get(url, timeout=15).content)) as im:
+                                if min(im.size) < CFG["crawl"]["min_side"] or \
+                                   im.format not in ("JPEG", "PNG"): continue
+                                p = d / f"{got:03d}.jpg"
+                                im.convert("RGB").save(p, quality=92)
+                        except Exception:
+                            continue
+                        prov.append({"class": cls, "file": str(p), "url": url, "query": q,
+                                     "license": lic, "role": CFG["crawl"]["role"]})
+                        got += 1; time.sleep(CFG["crawl"]["sleep"])
+                except Exception as e:
+                    print(f"   {pv} '{q[:26]}': {str(e)[:60]}")
+            if stop: break
+        print(f"  {cls}: {got} images")
+    pd.DataFrame(prov).to_csv(CR / "provenance.csv", index=False)
+    print(f"crawl done in {time.time()-t0:.0f}s -> {CR}")
+
+if CFG["crawl"]["enable"] and CFG["crawl"]["role"] == "stress_test":
+    crawl()
+    rows = []
+    for p in sorted(CR.rglob("*.jpg")):
+        with Image.open(p) as im:
+            x = np.asarray(im.convert("RGB").resize((SIZE, SIZE), np.float32)[None] / 255.)
+        pr = model.predict(x, verbose=0)[0]
+        s = np.sort(pr)
+        rows.append({"true": p.parent.name, "pred": CLASSES[int(pr.argmax())],
+                     "conf": round(float(pr.max()), 3),
+                     "margin": round(float(s[-1]-s[-2]), 3)})
+    if rows:
+        df = pd.DataFrame(rows)
+        print("\n=== FIELD STRESS TEST ===\n" + df.to_string(index=False))
+        print(f"top-1 {float((df['true']==df['pred']).mean()):.1%} | "
+              f"mean margin {df['margin'].mean():.3f}")
+        df.to_csv(OUT / "field_stress_test.csv", index=False)
+        print("Crawled labels are themselves noisy. Read the pattern, not the number.")

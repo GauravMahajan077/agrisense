@@ -1,0 +1,4 @@
+.opencode - Copy/
+__pycache__/
+*.pyc
+.tmp/
