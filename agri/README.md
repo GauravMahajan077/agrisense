@@ -1,7 +1,10 @@
 # Agrisense — paddy disease classification
 
-Kaggle pipeline. `agrisense_kaggle.py` holds the code as `# %%` cells (VS Code and
-Jupyter treat those as cells; on Kaggle, paste cell by cell).
+Kaggle pipeline. `agrisense.py` is the module — all logic in a `Pipeline` class with one
+method per stage. `agrisense_notebook.py` is a thin 3-cell wrapper (CONFIG → MODULE → RUN)
+that `split_cells.py` expands into paste-ready cells. The legacy 23-cell
+`agrisense_kaggle.py` is kept for reference; its cell numbers map 1:1 to the module's stage
+methods.
 
 **Your laptop does nothing but copy text.** 8 GB RAM plus thermal throttling is exactly the
 workload that kills laptop GPUs. Not one line of this runs locally.
@@ -10,33 +13,39 @@ workload that kills laptop GPUs. Not one line of this runs locally.
 
 ## 0. Copy-paste workflow
 
-`agrisense_kaggle.py` is the **single source of truth** and now has **10 blank lines between
-every cell**, so boundaries are obvious when reading it. Do not "tidy" those blank runs.
+`agrisense.py` is the **single source of truth** for the logic. `agrisense_notebook.py` is a
+thin 3-cell wrapper around it: **Cell 1 CONFIG** (the `CFG` dict you edit), **Cell 2 MODULE**
+(generated from `agrisense.py` via the `# %% include:agrisense.py` directive), **Cell 3 RUN**
+(`run(CFG)`). `split_cells.py` expands the wrapper into paste-ready files.
 
 For actual pasting, use the generated per-cell files — one file per cell means open it,
 `Ctrl+A`, `Ctrl+C`, paste. No eyeballing boundaries, no half-pasted cells.
 
 ```
 agri/
-  agrisense_kaggle.py    <- source of truth, 23 cells
+  agrisense.py           <- module: all logic (Pipeline class, 21 stages, run())
+  agrisense_notebook.py  <- 3-cell wrapper: CONFIG -> MODULE -> RUN
+  agrisense_kaggle.py    <- legacy 23-cell notebook, kept for reference
   split_cells.py         <- run this after any edit to refresh cells/
   field_test.py          <- eval-only loader for real field photos (section 7.5)
   cells/
     README.md            <- paste order table
-    01_cell_0_environment_probe.py
-    02_cell_1_config_the_only_cell_you_edit.py
-    ...
+    01_cell_1_config_the_only_cell_you_edit.py
+    02_cell_2_module_generated_from_agrisense_py_by_split_c.py
+    03_cell_3_run_prints_pipeline_version_and_runs_the_whol.py
 ```
 
 Rules:
 
 - `.md` files go into a **Markdown** cell; `.py` files into a **Code** cell.
 - Paste top to bottom, in the numbered order.
-- After editing `agrisense_kaggle.py`, run `python split_cells.py` to resync. It verifies a
-  round-trip against the combined file first, so a broken split fails loudly instead of
-  silently producing a partial cell.
+- After editing `agrisense.py` or `agrisense_notebook.py`, run `python split_cells.py` to
+  resync. It resolves the include directive and verifies a round-trip against the combined
+  source first, so a broken split fails loudly instead of silently producing a partial cell.
 - Only **Cell 1 (`CFG`)** normally needs editing, and it is easiest to edit directly in Kaggle
-  rather than round-tripping the file.
+  rather than round-tripping the file. `verify.py` AST-compares Cell 1's `CFG` against the
+  module's `DEFAULT_CFG` so the two cannot drift.
+- The legacy 23-cell notebook is regenerable with `python split_cells.py agrisense_kaggle.py`.
 
 ---
 
@@ -546,23 +555,20 @@ Cell numbers below match the filenames in `cells/`, so the table and the files l
 
 | Cell | File | Do this |
 |---|---|---|
-| 0 | `01_cell_0_environment_probe.py` | Confirm GPU and RAM print. **This cell runs on your laptop too** (CPU only, no exit) if you want to check imports. |
-| 1 | `02_cell_1_config_the_only_cell_you_edit.py` | Edit `CFG` only. |
-| 2–3 | `03_cell_2_*.py`, `04_cell_3_fetch_sources.py` | Fetch. Check nothing `[FAIL]`ed. |
-| 4 | `05_cell_4_manifest.py` | **Read this output.** Any `UNMAPPED` folder means add it to `alias`. Never a guessed label. |
-| 5–6 | `06_cell_5_*.py`, `07_cell_6_*.py` | **Read this output.** Largest-cluster size, clusters spanning classes, split table. This is where leakage and over-aggressive grouping show up. |
-| 7–8 | `08_cell_7_*.py`, `09_cell_8_*.py` | Confirm no class was dropped and weights look sane. |
-| 9–14 | `10_cell_9_*.py` … `15_cell_14_train.py` | Train. Watch the `backbone N/M layers trainable` line — it must be non-zero in B and C. |
-| 15–16 | `16_cell_15_*.py`, `17_cell_16_*.py` | Read `WORST-CLASS RECALL` and the val→test `GAP`. |
-| 16.5 | `18_cell_16_5_source_held_out_eval_headline_metric.py` | **The headline number.** Read the source-held-out macro-F1, its bootstrap CI, and the abstain coverage. |
-| 17 | `19_cell_17_crawler_quarantined.py` | Field stress test. |
-| 18–19 | `20_cell_18_export.py`, `21_cell_19_*.py` | Export, **check the TFLite parity number**, download `agrisense_bundle.zip`. |
+| 1 | `01_cell_1_config_the_only_cell_you_edit.py` | Edit `CFG` only. |
+| 2 | `02_cell_2_module_*.py` | The whole pipeline (21 stages). Do not hand-edit. |
+| 3 | `03_cell_3_run_*.py` | `run(CFG)` — prints `PIPELINE_VERSION`, runs every stage in order. |
 | — | `field_test.py` (section 7.5) | After the run: test the downloaded bundle on real field photos. Eval only, runs anywhere. |
 
-Stop-and-read checkpoints are cells **4, 5, 15 and 16.5**. Cells 0–9 never need a GPU.
+The 21 stages inside Cell 2 map 1:1 to the legacy 23-cell notebook (`agrisense_kaggle.py`):
+`env → deps → fetch → manifest → dedupe → split → min_class → class_weights → preload →
+pipelines → macro_f1 → make_model → callbacks → train → val_report → test_report → held_out
+→ crawl → export → bundle → cleanup`. Stop-and-read checkpoints are the manifest, the
+dedupe/split report, the val report and the source-held-out eval — each stage prints its
+output in order.
 
 **Smoke mode:** set `CFG["smoke"] = True` for a fast sanity run — 40 images/class, 1
-epoch/stage, no crawl, no export/bundle. Run it before any full run; it exercises every cell
+epoch/stage, no crawl, no export/bundle. Run it before any full run; it exercises every stage
 end-to-end in a few minutes.
 
 Reuse the model in a later run: add `agrisense_bundle.zip` as a Kaggle Dataset, or `Save

@@ -6,18 +6,20 @@ Session state file. Updated at the end of every phase. Committed to git.
 Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rules live in
 [`AGENTS.md`](AGENTS.md) — that file is authoritative for *how* to work here.
 
-- **Source of truth:** `agri/agrisense_kaggle.py` — 23 `# %%` cells (1 markdown + 22 code), 1,955 lines.
+- **Module (source of truth):** `agri/agrisense.py` — `Pipeline` class, 21 stage methods, `run(cfg)`.
+- **Notebook wrapper:** `agri/agrisense_notebook.py` — 3 cells (CONFIG → MODULE → RUN); Cell 2 is
+  generated from the module via the `# %% include:agrisense.py` directive.
+- **Legacy:** `agri/agrisense_kaggle.py` — 23 `# %%` cells (1 markdown + 22 code), kept on purpose.
 - **Generated output:** `agri/cells/*` — produced by `python split_cells.py`, never hand-edited.
-- **`agri/split_cells.py`** — generator *and* round-trip verifier (every non-empty line of every cell
-  must appear in the source, in order). This is what keeps source ↔ cells from drifting.
+- **`agri/split_cells.py`** — generator *and* round-trip verifier (resolves the include directive;
+  every non-empty line of every cell must appear in the resolved source, in order).
 - **`agri/verify.py`** — the only test that reads the REAL source and the REAL generated cells.
   Run: `python -B verify.py`.
 
 ## Decisions already made (do not relitigate)
-1. **`agrisense.py` + 3-cell notebook restructure is NEXT** — Phases 0–4 all pass, so the
-   deferral condition is met. 1,824 lines of shared globals still cannot be validated without a
-   Kaggle run; `PIPELINE_VERSION` (Phase 1/2) solves the stale-paste problem meanwhile. The
-   restructure is the next phase and must be proposed + approved before any work.
+1. **`agrisense.py` + 3-cell notebook restructure is DONE** (Phase 5). The legacy
+   `agrisense_kaggle.py` is kept on purpose (user decision). The notebook is self-contained:
+   Cell 2 = module source via the include directive, no dataset upload, no re-upload on changes.
 2. **All logic unit tests were deleted** (see cleanup below) because every one tested a
    *hand-copied re-implementation*, not the shipped source. Proof: `test_cell5_sweep.py` contained
    its own `clusters_at` with the `return cid, 0` fix, so the suite reported ALL PASS while
@@ -51,7 +53,7 @@ Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rul
 | **2** — P1 simplify (remove sweep/LSH/cache/`effective`/`oversample`/finetune-crawl, `multi_gpu: False`, smoke mode, `PIPELINE_VERSION`, pin pip, UA email, crawl byte cap) | ✅ DONE (commit `f01e9f3`) |
 | **3** — P2 honest eval (8-variant D4 brute force, same-class merge only, cross-class dropped from val/test, source-held-out split, macro-F1 per source + bootstrap CI, abstain rule) | ✅ DONE (commit `ab04f7d`) |
 | **4** — P3 field-test loader (eval only) | ✅ DONE (commit `08bf8a2`) |
-| restructure → `agrisense.py` + 3-cell notebook | ⬜ NEXT (0–4 all pass) |
+| **5** — restructure → `agrisense.py` + 3-cell notebook | ✅ DONE (commit `eec8434`) |
 
 ## Phase 1 — what was actually done (commit `d9492b7`)
 1. `clusters_at`: `if not nd: return cid` → `return cid, 0` (fixes `ValueError: too many values to unpack` at lines 905/924).
@@ -183,6 +185,51 @@ Cell 6 cross-class move, and the Cell 16.5 held-out eval.
 **Verification limits:** the loader itself is fully testable locally (TF 2.21 + PIL installed)
 and was tested end-to-end on a real TFLite model. The only thing not verified locally is the
 actual `agrisense_bundle.zip` from a Kaggle run — that needs the Phase 2/3 smoke-run paste.
+
+## Phase 5 — what was actually done (restructure, commit `eec8434`)
+1. **`agri/agrisense.py` (new, source of truth):** all logic in a `Pipeline` class — 21 stage
+   methods (1:1 with the legacy 23-cell notebook) + `run(cfg)` entry point that prints
+   `PIPELINE_VERSION` and calls the stages in order. **No `__main__` pipeline block** (in a
+   notebook `__name__ == "__main__"`, so a block there would fire on paste). Module-level
+   `DEFAULT_CFG` (the notebook's CONFIG cell is the editable copy; verify.py AST-compares the
+   two). `PIPELINE_VERSION = "3.0.0"`.
+2. **Behavior-preservation details:** `SaveBestF1.best` stays a CLASS attribute (one global
+   best across stage callbacks); `BEST_PATH` and `BudgetStop`'s `t_train0`/`budget_min` became
+   constructor args (no module globals); `imagehash`/`ddgs`/`requests` imported lazily at point
+   of use (pip-installed by `deps()`; a fresh Kaggle session has none of them); env vars set at
+   module top before the tensorflow import; model stage renamed `make_model()` so it does not
+   shadow `self.model`.
+3. **`agri/agrisense_notebook.py` (new):** 3-cell wrapper — Cell 1 CONFIG (`CFG` dict, the only
+   cell you edit), Cell 2 MODULE (`# %% include:agrisense.py` directive), Cell 3 RUN
+   (`run(CFG)`). Self-contained when pasted: no dataset upload, no re-upload on changes.
+4. **`agri/split_cells.py`:** SRC is now argv-configurable (default `agrisense_notebook.py`;
+   `python split_cells.py agrisense_kaggle.py` regenerates the legacy cells); new
+   `resolve_includes()` replaces `# %% include:<path>` lines with the referenced file's content
+   before parse + round-trip verify.
+5. **`agri/verify.py`:** rewritten for Phase 5 — module parses, `Pipeline` has all 21 stage
+   methods, `run()` calls them in order, no `__main__` block, every entry point prints
+   `PIPELINE_VERSION`, smoke wired through manifest/train/export/bundle/crawl, inference paths
+   never divide by 255 (AST-based, comments don't count), lazy imports, audit markers; notebook
+   has 4 cells (1 md + 3 code), Cell 1 CFG AST-matches `DEFAULT_CFG`, include directive present;
+   generated cells = 3 code cells, MODULE cell not stale (ends with current module); legacy
+   notebook kept + parses + 23 cells; field_test.py + README checks kept.
+6. **`agri/test_phase3_dedupe.py`:** retargeted from `agrisense_kaggle.py` to `agrisense.py` —
+   the four helpers are now `Pipeline` methods (none touch `self`), so they are AST-extracted
+   from the class and bound to a dummy instance.
+
+**Validation (all real, pasted in session):**
+- `python split_cells.py` → 4 cells (1 md + 3 code), round-trip OK; legacy path verified
+  separately (23 cells round-trip OK).
+- `python -B verify.py` → ALL PASS, exit 0 (60 checks).
+- `python -B test_phase3_dedupe.py` → ALL PASS, exit 0 (16 checks, regression).
+- `python -B test_phase4_field_test.py` → ALL PASS, exit 0 (16 checks incl. real TFLite e2e).
+- One real bug caught during validation: `_d4_keys` referenced `imagehash` but the import was
+  local to `dedupe()` → `NameError` in the worker thread. Fixed with a lazy import inside
+  `_d4_keys`; the dead import in `dedupe()` was removed.
+
+**Verification limits:** same as Phases 1–4 — local TF 2.21 ≠ Kaggle TF 2.20. The Phase 5
+acceptance gate is a user-pasted Kaggle smoke run of the new 3-cell notebook (Cell 1 CONFIG →
+Cell 2 MODULE → Cell 3 RUN).
 
 ## Headline metric (the number that matters)
 Source-held-out: train on `anshul6` + `indo3`, test on `dedeikh` across the 5 shared classes
