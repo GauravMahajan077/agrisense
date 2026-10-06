@@ -1,8 +1,9 @@
 """Phase 3 unit tests for the brute-force D4 dedupe helpers.
 
 Extracts the SHIPPED implementations (d4_dist_matrix, brute_clusters, cross_class_mask,
-leak_scan) straight out of agrisense_kaggle.py via AST, so the tests exercise exactly what
-runs on Kaggle — not a copy.
+leak_scan) straight out of agrisense.py via AST, so the tests exercise exactly what runs on
+Kaggle — not a copy. The helpers are Pipeline methods but never touch `self`, so they are
+bound to a dummy instance and called as plain functions.
 
 Run from agri/:  python -B test_phase3_dedupe.py
 """
@@ -14,21 +15,28 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-SRC = pathlib.Path("agrisense_kaggle.py").read_text(encoding="utf-8")
+SRC = pathlib.Path("agrisense.py").read_text(encoding="utf-8")
 TREE = ast.parse(SRC)
 
 FUNCS = ["d4_dist_matrix", "brute_clusters", "cross_class_mask", "leak_scan"]
 
 ns = {"np": np, "defaultdict": defaultdict}
 for name in FUNCS:
-    node = next(n for n in TREE.body if isinstance(n, ast.FunctionDef) and n.name == name)
+    cls = next(n for n in TREE.body if isinstance(n, ast.ClassDef) and n.name == "Pipeline")
+    node = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == name)
     code = ast.get_source_segment(SRC, node)
     exec(compile(code, f"<{name}>", "exec"), ns)
 
-d4_dist_matrix = ns["d4_dist_matrix"]
-brute_clusters = ns["brute_clusters"]
-cross_class_mask = ns["cross_class_mask"]
-leak_scan = ns["leak_scan"]
+
+class _Dummy:
+    pass
+
+
+_dummy = _Dummy()
+d4_dist_matrix = lambda *a, **k: ns["d4_dist_matrix"](_dummy, *a, **k)
+brute_clusters = lambda *a, **k: ns["brute_clusters"](_dummy, *a, **k)
+cross_class_mask = lambda *a, **k: ns["cross_class_mask"](_dummy, *a, **k)
+leak_scan = lambda *a, **k: ns["leak_scan"](_dummy, *a, **k)
 
 fails = []
 
