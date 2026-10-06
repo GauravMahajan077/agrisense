@@ -40,16 +40,7 @@ ytr = np.array([CIDX[c] for c in tr["class"]], np.int32)
 yva = np.array([CIDX[c] for c in va["class"]], np.int32)
 yte = np.array([CIDX[c] for c in te["class"]], np.int32)
 
-# oversample weights are computed HERE, from the post-preload labels, so they cannot go stale
-rep_per_img = None
-if mode == "oversample":
-    med = float(np.median(cnt))
-    reps = np.minimum(CFG["imbalance"]["oversample_cap"],
-                      np.maximum(1, np.ceil(med / np.maximum(cnt, 1)))).astype(int)
-    rep_per_img = reps[ytr]
-    print(f"  oversample: median={med:.0f} -> reps per class "
-          f"{dict(zip(CLASSES, reps))} -> train {len(ytr)} -> {rep_per_img.sum()} samples/epoch")
-    w = np.ones(NC); CLS_W = tf.constant(w / w.mean(), tf.float32)
+# (oversample was removed on purpose — class_weight only, see Cell 8)
 
 # Once the pixels are in RAM, the on-disk copies are dead weight — ~10 GB of it. /kaggle/working
 # is ~20 GB and the Keras/TFLite exports plus checkpoints need that space later. Only safe when

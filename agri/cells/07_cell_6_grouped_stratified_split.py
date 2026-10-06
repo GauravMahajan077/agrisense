@@ -1,10 +1,10 @@
 # CELL 6 — grouped stratified split
-# `grouped_split`, `leak_scan` and `clusters_at` are defined in CELL 5, so the near_dist sweep
-# there measured leak counts with the exact same splitter this cell uses. Do not re-define them
-# here: a second copy is how the two halves drift apart.
+# `grouped_split`, `leak_scan` and `clusters_at` are defined in CELL 5, so this cell uses the
+# exact same splitter. Do not re-define them here: a second copy is how the two halves drift
+# apart.
 
 sp = CFG["split"]
-man, got = grouped_split(man, sp, SEED)          # defined in Cell 5, so the sweep used it too
+man, got = grouped_split(man, sp, SEED)          # defined in Cell 5, shared with this cell
 print("split sizes: " + ", ".join(f"{k}={int(got[k])}" for k in sp)
       + f"  (target {int(sp['train']*len(man))}/{int(sp['val']*len(man))}/{int(sp['test']*len(man))})")
 tab = man.groupby(["class", "split"]).size().unstack(fill_value=0).reindex(columns=list(sp))

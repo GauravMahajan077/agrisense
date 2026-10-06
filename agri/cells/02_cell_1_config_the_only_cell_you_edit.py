@@ -2,13 +2,18 @@
 CFG = {
     "seed": 1337,
 
+    # smoke = 40 img/class, 1 epoch/stage, no crawl, no export. Run it before any full run.
+    "smoke": False,
+
     # ---------- image / speed ----------
     "img_size": 224,               # model input
     "pre_size": 256,               # preload target; augmentation crops 256 -> 224
     "batch_size_per_replica": 64,  # global batch = this x num_replicas
     "amp": True,                   # mixed_float16
     "jit": True,                   # XLA (auto-skipped when multi_gpu is on)
-    "multi_gpu": True,             # MirroredStrategy across both T4s; False to force 1 GPU
+    "multi_gpu": False,            # single GPU by default: MirroredStrategy adds friction
+                                   # (XLA off, batch split) for no accuracy gain. True to try
+                                   # both T4s anyway.
     "preload_ram": True,           # pre-decode into a RAM array (the speed win)
     "ram_frac": 0.40,              # preload budget as a fraction of AVAILABLE ram
     "workers": 8,
@@ -108,21 +113,14 @@ CFG = {
     "split": {"train": 0.70, "val": 0.15, "test": 0.15},
     # pHash is not flip/rotate invariant, so plain pHash misses exactly the `Rice_Leaf_AUG`
     # siblings we need to group. dihedral=True hashes the 8 D4 variants and takes the min.
-    #
-    # near_dist is NOT a free parameter and there is no universally right value: 8x8-bit pHash
-    # cannot cleanly separate "same photo re-encoded" from "different photo of the same class".
-    # Merge harder and cross-split leaks fall but clusters grow, distorting class ratios and
-    # folding label noise together. So `sweep` MEASURES both sides for several candidates and
-    # prints a table; pick a row from it and set near_dist to match. Leave sweep as [near_dist]
-    # to skip the table.
-    "dedupe": {"enable": True, "dihedral": True, "near_dist": 4, "bands": 8,
-               "sweep": [0, 2, 4, 6, 7], "rehash": False},
+    # near_dist is the single merge threshold (Hamming <= near_dist on the D4-min key).
+    "dedupe": {"enable": True, "dihedral": True, "near_dist": 4, "bands": 8},
     "min_class": 120,   # MINIMUM TRAIN IMAGES, enforced AFTER the split (see Cell 7)
 
-    # ---------- imbalance: pick ONE ----------
-    "imbalance": {"mode": "class_weight",   # class_weight | effective | oversample | none
-                  "effective_beta": 0.999,
-                  "oversample_cap": 3},     # cap = multiple of the MEDIAN class
+    # ---------- imbalance ----------
+    # class_weight only. effective/oversample were removed on purpose (audit): class_weight
+    # is the one that worked, and the others added config surface without a measured win.
+    "imbalance": {"mode": "class_weight"},
 
     # ---------- augmentation (CPU, after preload -> never baked into exports) ----------
     # Applied in 0..1, matching tf.image.adjust_* expectations.
@@ -141,10 +139,11 @@ CFG = {
     # ---------- crawled web photos: quarantined ----------
     "crawl": {
         "enable": True,
-        "role": "stress_test",       # stress_test | finetune
+        "role": "stress_test",       # stress_test only (finetune removed on purpose)
         "providers": ["wikimedia", "ddg"],
         "per_class": 20,
         "min_side": 200,
+        "max_bytes": 5_000_000,      # per-image download cap (a 20 MB photo is never useful)
         "sleep": 0.3,
         "max_seconds": 180,
         "queries": {

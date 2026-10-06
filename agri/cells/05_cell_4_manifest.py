@@ -34,6 +34,9 @@ for r in ROOTS:
 man = pd.DataFrame(rows)
 if man.empty:
     raise SystemExit("manifest empty — CFG['alias'] does not match your folder names")
+if CFG["smoke"]:
+    man = man.groupby("class").head(40).reset_index(drop=True)
+    print(f"SMOKE: manifest capped to {len(man)} images (40/class)")
 man.to_csv(OUT / "manifest_raw.csv", index=False)
 
 print(f"manifest: {len(man)} images from {man['source'].nunique()} source(s)\n")

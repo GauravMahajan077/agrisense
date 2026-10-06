@@ -67,6 +67,10 @@ os.environ.setdefault("TF_NUM_INTRAOP_THREADS", str(min(8, _NC)))
 os.environ.setdefault("TF_NUM_INTEROP_THREADS", "2")
 T0 = time.time()
 
+# Bumped on every intentional pipeline change. Printed at every entry point (start, train,
+# export, bundle) so a stale paste is visible in the log instead of silently shipping.
+PIPELINE_VERSION = "2.0.0"
+
 import numpy as np, tensorflow as tf
 
 KAGGLE = Path("/kaggle").is_dir()
@@ -126,7 +130,8 @@ def _dir_gb(d):
     except Exception:
         return 0.0
 
-print(f"python {sys.version.split()[0]} | cpus {_NC} | platform {'kaggle' if KAGGLE else 'local'}")
+print(f"PIPELINE_VERSION {PIPELINE_VERSION} | python {sys.version.split()[0]} | cpus {_NC} | "
+      f"platform {'kaggle' if KAGGLE else 'local'}")
 print(f"tf {tf.__version__} | numpy {np.__version__} | keras {tf.keras.__version__}")
 print(f"RAM {RAM_GB:.1f} GB total / {RAM_AVAIL_GB:.1f} GB available | disk {free_gb:.1f} GB free in WORK")
 print(f"temp: {_tmp_gb()} (Cell 3 redirects TMPDIR here, so WORK is the only limit)")
@@ -193,13 +198,18 @@ print(f"disk headroom: {_free_gb():.1f} GB")
 CFG = {
     "seed": 1337,
 
+    # smoke = 40 img/class, 1 epoch/stage, no crawl, no export. Run it before any full run.
+    "smoke": False,
+
     # ---------- image / speed ----------
     "img_size": 224,               # model input
     "pre_size": 256,               # preload target; augmentation crops 256 -> 224
     "batch_size_per_replica": 64,  # global batch = this x num_replicas
     "amp": True,                   # mixed_float16
     "jit": True,                   # XLA (auto-skipped when multi_gpu is on)
-    "multi_gpu": True,             # MirroredStrategy across both T4s; False to force 1 GPU
+    "multi_gpu": False,            # single GPU by default: MirroredStrategy adds friction
+                                   # (XLA off, batch split) for no accuracy gain. True to try
+                                   # both T4s anyway.
     "preload_ram": True,           # pre-decode into a RAM array (the speed win)
     "ram_frac": 0.40,              # preload budget as a fraction of AVAILABLE ram
     "workers": 8,
@@ -299,21 +309,14 @@ CFG = {
     "split": {"train": 0.70, "val": 0.15, "test": 0.15},
     # pHash is not flip/rotate invariant, so plain pHash misses exactly the `Rice_Leaf_AUG`
     # siblings we need to group. dihedral=True hashes the 8 D4 variants and takes the min.
-    #
-    # near_dist is NOT a free parameter and there is no universally right value: 8x8-bit pHash
-    # cannot cleanly separate "same photo re-encoded" from "different photo of the same class".
-    # Merge harder and cross-split leaks fall but clusters grow, distorting class ratios and
-    # folding label noise together. So `sweep` MEASURES both sides for several candidates and
-    # prints a table; pick a row from it and set near_dist to match. Leave sweep as [near_dist]
-    # to skip the table.
-    "dedupe": {"enable": True, "dihedral": True, "near_dist": 4, "bands": 8,
-               "sweep": [0, 2, 4, 6, 7], "rehash": False},
+    # near_dist is the single merge threshold (Hamming <= near_dist on the D4-min key).
+    "dedupe": {"enable": True, "dihedral": True, "near_dist": 4, "bands": 8},
     "min_class": 120,   # MINIMUM TRAIN IMAGES, enforced AFTER the split (see Cell 7)
 
-    # ---------- imbalance: pick ONE ----------
-    "imbalance": {"mode": "class_weight",   # class_weight | effective | oversample | none
-                  "effective_beta": 0.999,
-                  "oversample_cap": 3},     # cap = multiple of the MEDIAN class
+    # ---------- imbalance ----------
+    # class_weight only. effective/oversample were removed on purpose (audit): class_weight
+    # is the one that worked, and the others added config surface without a measured win.
+    "imbalance": {"mode": "class_weight"},
 
     # ---------- augmentation (CPU, after preload -> never baked into exports) ----------
     # Applied in 0..1, matching tf.image.adjust_* expectations.
@@ -332,10 +335,11 @@ CFG = {
     # ---------- crawled web photos: quarantined ----------
     "crawl": {
         "enable": True,
-        "role": "stress_test",       # stress_test | finetune
+        "role": "stress_test",       # stress_test only (finetune removed on purpose)
         "providers": ["wikimedia", "ddg"],
         "per_class": 20,
         "min_side": 200,
+        "max_bytes": 5_000_000,      # per-image download cap (a 20 MB photo is never useful)
         "sleep": 0.3,
         "max_seconds": 180,
         "queries": {
@@ -366,31 +370,32 @@ if not CFG["merge_narrow_brown"] and "Narrow_Brown_Spot" not in CFG["classes"]:
 import importlib.util, subprocess as _sp
 
 def _pip(*pkgs, required=True):
-    # Probe by IMPORT name, install by PyPI name. "PIL" is the import name of "Pillow"; pip has
-    # no package called "PIL", so installing the probe name fails on a clean environment.
-    _PYPI = {"PIL": "Pillow"}
-    missing = [p for p in pkgs if importlib.util.find_spec(p) is None]
+    # Each arg is (import_name, install_spec). The import name is what we probe; the spec is
+    # what pip installs, and it is PINNED so a future package release cannot silently change
+    # the pipeline. "PIL" is the import name of "Pillow" — pip has no package called "PIL".
+    missing = [s for s in pkgs if importlib.util.find_spec(s[0]) is None]
     if not missing:
-        print(f"present: {' '.join(pkgs)}"); return
-    names = [_PYPI.get(p, p) for p in missing]
-    print(f"installing: {' '.join(names)} (import name(s): {' '.join(missing)})")
+        print(f"present: {' '.join(s[0] for s in pkgs)}"); return
+    names = [s[1] for s in missing]
+    print(f"installing: {' '.join(names)} (import name(s): {' '.join(s[0] for s in missing)})")
     try:
         _sp.run([sys.executable, "-m", "pip", "install", "-q", *names], check=True)
         # pip returning 0 is not proof: the install can land yet the module still not import
         # (stale sys.path cache, or a shadowing local file). Re-probe before claiming OK.
         importlib.invalidate_caches()
-        for p in missing:
-            if importlib.util.find_spec(p) is None:
-                raise ImportError(f"{p} still not importable after installing {' '.join(names)}")
+        for imp, _ in missing:
+            if importlib.util.find_spec(imp) is None:
+                raise ImportError(f"{imp} still not importable after installing {' '.join(names)}")
         print("  installed and importable")
     except Exception as e:
         if required: raise
         print(f"  optional install failed ({type(e).__name__}) — continuing without it")
 
-# NOTE: import name "PIL" is the PyPI package "Pillow" — _pip maps between them.
-_pip("PIL", "imagehash")
+# Pinned: imagehash and ddgs are the two packages this pipeline actually installs on Kaggle.
+# Pillow is a Kaggle preinstall, so it is left unpinned (only installed if missing).
+_pip(("PIL", "Pillow"), ("imagehash", "imagehash==4.3.2"))
 try:
-    _pip("ddgs", required=False)       # DuckDuckGo image search, crawler only
+    _pip(("ddgs", "ddgs==9.16.0"), required=False)   # DuckDuckGo image search, crawler only
 except Exception:
     pass
 
@@ -694,6 +699,9 @@ for r in ROOTS:
 man = pd.DataFrame(rows)
 if man.empty:
     raise SystemExit("manifest empty — CFG['alias'] does not match your folder names")
+if CFG["smoke"]:
+    man = man.groupby("class").head(40).reset_index(drop=True)
+    print(f"SMOKE: manifest capped to {len(man)} images (40/class)")
 man.to_csv(OUT / "manifest_raw.csv", index=False)
 
 print(f"manifest: {len(man)} images from {man['source'].nunique()} source(s)\n")
@@ -780,9 +788,9 @@ def clusters_at(keys, nd, B=8):
         for i in idx:
             cid[i] = j
     if not nd:
-        return cid, 0                      # ALWAYS (ids, merged): both callers unpack 2 values,
-                                           # and the sweep list contains 0. A bare cid raised
-                                           # "too many values to unpack" at nd=0.
+        return cid, 0                      # ALWAYS (ids, merged): both callers unpack 2 values.
+                                           # A bare cid raised "too many values to unpack" at
+                                           # nd=0 (the old sweep list contained 0).
     buckets = defaultdict(list)
     for j, k in enumerate(key_list):
         v = int(k, 16)
@@ -801,8 +809,8 @@ def clusters_at(keys, nd, B=8):
     return out, merged
 
 def grouped_split(man, sp, seed):
-    """Stratified group split. Defined here, not in Cell 6, so the threshold sweep below can
-    measure leak counts for every candidate `near_dist` before one of them is chosen.
+    """Stratified group split. Defined here, not in Cell 6, so Cell 5 and Cell 6 share one
+    implementation (a second copy is how the two halves drift apart).
 
     Two properties matter, and the previous version had neither it claimed:
       * per-CLASS ratios, not just the global total. Global bin packing alone gave
@@ -866,63 +874,21 @@ def leak_scan(man, keys, tight=7, B=8):
     return leaks
 
 if CFG["dedupe"]["enable"]:
-    # Cache the canonical keys. Hashing is the only expensive step (84 s for 6617 images);
-    # the threshold sweep below re-runs it zero times, so trying several `near_dist` values is
-    # nearly free. Without this, every threshold experiment cost a full re-hash and nobody
-    # would try more than one.
-    cache = OUT / "canon_keys.csv"
-    keys = None
-    if cache.exists() and not CFG["dedupe"].get("rehash", False):
-        d = pd.read_csv(cache)
-        if len(d) == len(man) and d["path"].tolist() == man["path"].tolist():
-            keys = d["key"].tolist()
-            print(f"reused cached canonical keys for {len(keys)} images "
-                  f"(set dedupe.rehash=True, or delete {cache.name}, to recompute)")
-    if keys is None:
-        t = time.time()
-        dia = CFG["dedupe"]["dihedral"]
-        with ThreadPoolExecutor(CFG["workers"]) as ex:
-            keys = list(ex.map(lambda p: _canon_key(p, dia), man["path"].tolist()))
-        ok = np.array([k is not None for k in keys])
-        print(f"hashed {ok.sum()}/{len(ok)} in {time.time()-t:.0f}s "
-              f"(dihedral={dia}, {8 if dia else 1} variants/img)")
-        man = man[ok].reset_index(drop=True)
-        keys = [k for k, m in zip(keys, ok) if m]
-        pd.DataFrame({"path": man["path"], "key": keys}).to_csv(cache, index=False)
+    # Hash the canonical keys fresh every run. The old on-disk cache was removed on purpose:
+    # it could silently serve stale keys after a manifest change, and hashing is only ~84 s
+    # for the full set (far less in smoke).
+    t = time.time()
+    dia = CFG["dedupe"]["dihedral"]
+    with ThreadPoolExecutor(CFG["workers"]) as ex:
+        keys = list(ex.map(lambda p: _canon_key(p, dia), man["path"].tolist()))
+    ok = np.array([k is not None for k in keys])
+    print(f"hashed {ok.sum()}/{len(ok)} in {time.time()-t:.0f}s "
+          f"(dihedral={dia}, {8 if dia else 1} variants/img)")
+    man = man[ok].reset_index(drop=True)
+    keys = [k for k, m in zip(keys, ok) if m]
 
     B = CFG["dedupe"]["bands"]
     nd = CFG["dedupe"]["near_dist"]
-
-    # ---- the threshold sweep: measure the trade-off instead of guessing it ----
-    # Merging harder drives cross-split leaks toward zero but grows clusters, which distorts
-    # class ratios and folds more label noise together. Both sides are printed so the choice
-    # is made on numbers. Previously this was a guess, and one guess already cost a full run.
-    sweep = CFG["dedupe"].get("sweep") or [nd]
-    sweep = [x for x in sweep if x >= 0]
-    if len(sweep) > 1:
-        print(f"\nnear_dist sweep  ({len(keys)} images, split {CFG['split']}, seed {SEED})")
-        print(f"  {'nd':>3} | {'clusters':>8} | {'largest':>7} | {'multi-img':>9} | "
-              f"{'x-class':>7} | {'x-src':>5} | {'leaks@7':>8} | {'worst dev':>9}")
-        for n_ in sorted(sweep):
-            c_, _m = clusters_at(keys, n_, B)
-            m2 = man.copy()
-            m2["cluster"] = c_
-            sz = pd.Series(c_).value_counts()
-            mm = sz[sz > 1]
-            xc = int((m2.groupby("cluster")["class"].nunique() > 1).sum())
-            xs_ = int((m2.groupby("cluster")["source"].nunique() > 1).sum())
-            sp_, _g = grouped_split(m2, CFG["split"], SEED)
-            lk = leak_scan(sp_, keys, tight=7, B=B)
-            nlk = sum(len(v) for v in lk.values())
-            tb = sp_.groupby(["class", "split"]).size().unstack(fill_value=0)
-            wd = max(max(abs(tb.loc[c, s] - tb.loc[c].sum() * CFG["split"][s]) / tb.loc[c].sum()
-                          for s in CFG["split"] if s in tb.columns) for c in tb.index)
-            mark = "  <= chosen" if n_ == nd else ""
-            print(f"  {n_:>3} | {len(sz):>8} | {int(sz.max()):>7} | {int(mm.sum()):>9} | "
-                  f"{xc:>7} | {xs_:>5} | {nlk:>8} | {wd:>8.1%}{mark}")
-        print("  leaks@7 = near-duplicate pairs straddling splits, detected at Hamming <= 7.")
-        print("  Read the row you want and set CFG['dedupe']['near_dist'] to it.")
-
     man["cluster"], _merged = clusters_at(keys, nd, B)
     print(f"\nchosen near_dist {nd}: {_merged} key pairs merged within Hamming <= {nd} "
           f"(B={B}, complete for nd <= {B - 1})")
@@ -993,12 +959,12 @@ man.to_csv(OUT / "manifest_grouped.csv", index=False)
 
 # %%
 # CELL 6 — grouped stratified split
-# `grouped_split`, `leak_scan` and `clusters_at` are defined in CELL 5, so the near_dist sweep
-# there measured leak counts with the exact same splitter this cell uses. Do not re-define them
-# here: a second copy is how the two halves drift apart.
+# `grouped_split`, `leak_scan` and `clusters_at` are defined in CELL 5, so this cell uses the
+# exact same splitter. Do not re-define them here: a second copy is how the two halves drift
+# apart.
 
 sp = CFG["split"]
-man, got = grouped_split(man, sp, SEED)          # defined in Cell 5, so the sweep used it too
+man, got = grouped_split(man, sp, SEED)          # defined in Cell 5, shared with this cell
 print("split sizes: " + ", ".join(f"{k}={int(got[k])}" for k in sp)
       + f"  (target {int(sp['train']*len(man))}/{int(sp['val']*len(man))}/{int(sp['test']*len(man))})")
 tab = man.groupby(["class", "split"]).size().unstack(fill_value=0).reindex(columns=list(sp))
@@ -1140,24 +1106,15 @@ man.to_csv(OUT / "manifest_split.csv", index=False)
 cnt = tr["class"].value_counts().reindex(CLASSES).to_numpy(float)
 N = cnt.sum()
 mode = CFG["imbalance"]["mode"]
+assert mode == "class_weight", f"only class_weight is supported (got {mode!r})"
 
-if mode == "class_weight":
-    w = N / (NC * cnt)
-elif mode == "effective":
-    b = CFG["imbalance"]["effective_beta"]; w = (1 - b) / (1 - b ** cnt)
-else:
-    w = np.ones(NC)
+w = N / (NC * cnt)
 w = w / w.mean()
 CLS_W = tf.constant(w, dtype=tf.float32)
 print(f"imbalance mode: {mode}  |  majority/minority {cnt.max()/max(cnt[cnt>0].min(),1):.1f}x")
 print(pd.DataFrame({"class": CLASSES, "train_n": cnt.astype(int), "weight": w.round(3)}).to_string())
 
-LOSS = {
-    "class_weight": lambda: tf.keras.losses.CategoricalCrossentropy(),
-    "effective":    lambda: tf.keras.losses.CategoricalCrossentropy(),
-    "oversample":   lambda: tf.keras.losses.CategoricalCrossentropy(),
-    "none":         lambda: tf.keras.losses.CategoricalCrossentropy(),
-}[mode]
+LOSS = lambda: tf.keras.losses.CategoricalCrossentropy()
 
 
 
@@ -1211,16 +1168,7 @@ ytr = np.array([CIDX[c] for c in tr["class"]], np.int32)
 yva = np.array([CIDX[c] for c in va["class"]], np.int32)
 yte = np.array([CIDX[c] for c in te["class"]], np.int32)
 
-# oversample weights are computed HERE, from the post-preload labels, so they cannot go stale
-rep_per_img = None
-if mode == "oversample":
-    med = float(np.median(cnt))
-    reps = np.minimum(CFG["imbalance"]["oversample_cap"],
-                      np.maximum(1, np.ceil(med / np.maximum(cnt, 1)))).astype(int)
-    rep_per_img = reps[ytr]
-    print(f"  oversample: median={med:.0f} -> reps per class "
-          f"{dict(zip(CLASSES, reps))} -> train {len(ytr)} -> {rep_per_img.sum()} samples/epoch")
-    w = np.ones(NC); CLS_W = tf.constant(w / w.mean(), tf.float32)
+# (oversample was removed on purpose — class_weight only, see Cell 8)
 
 # Once the pixels are in RAM, the on-disk copies are dead weight — ~10 GB of it. /kaggle/working
 # is ~20 GB and the Keras/TFLite exports plus checkpoints need that space later. Only safe when
@@ -1292,9 +1240,7 @@ if USE_RAM:
     n_tr = len(ytr)
     def gen_train():
         while True:
-            order = (rng_ds.permutation(n_tr) if rep_per_img is None
-                     else rng_ds.permutation(np.repeat(np.arange(n_tr), rep_per_img)))
-            for i in order:
+            for i in rng_ds.permutation(n_tr):
                 yield Xtr[i], ytr[i]
     def gen_eval(X, y):
         for i in range(len(y)):
@@ -1319,9 +1265,7 @@ else:
     def gen_train():
         paths = tr["path"].tolist()
         while True:
-            order = (rng_ds.permutation(n_tr) if rep_per_img is None
-                     else rng_ds.permutation(np.repeat(np.arange(n_tr), rep_per_img)))
-            for i in order:
+            for i in rng_ds.permutation(n_tr):
                 yield dec(paths[i]), ytr[i]
     train_ds = (tf.data.Dataset.from_generator(
                     gen_train, output_signature=(tf.TensorSpec([PRE, PRE, 3], tf.uint8),
@@ -1489,14 +1433,17 @@ def make_cbs(tag):
 # CELL 14 — train
 import contextlib
 T_TRAIN0 = time.time()
-cw = None if mode in ("oversample", "none") else {i: float(w[i]) for i in range(NC)}
+cw = {i: float(w[i]) for i in range(NC)}   # class_weight only (oversample/none removed)
 
+print(f"PIPELINE_VERSION {PIPELINE_VERSION} | training {NC} classes | "
+      f"train {len(ytr)} | val {len(yva)} | test {len(yte)}")
 for st in CFG["stages"]:
     spent = (time.time() - T_TRAIN0) / 60.0
     if spent > CFG["train_budget_min"]:
         print(f"budget spent ({spent:.1f}m) before {st['name']} -> skipping remaining stages")
         break
-    print(f"\n=== {st['name']} | unfreeze last {st['unfreeze']} | {st['epochs']} epochs | "
+    epochs = 1 if CFG["smoke"] else st["epochs"]
+    print(f"\n=== {st['name']} | unfreeze last {st['unfreeze']} | {epochs} epochs | "
           f"lr {st['lr']} | spent {spent:.1f}m ===")
     nbb = set_trainable(model, st["unfreeze"])
     expect = 0 if st["unfreeze"] == 0 else abs(st["unfreeze"])
@@ -1512,7 +1459,7 @@ for st in CFG["stages"]:
     with (STRATEGY.scope() if STRATEGY is not None else contextlib.nullcontext()):
         model.compile(optimizer=tf.keras.optimizers.Adam(st["lr"]),
                       loss=LOSS(), metrics=["accuracy", macro_f1()], **kw)
-    model.fit(train_ds, validation_data=val_ds, epochs=st["epochs"],
+    model.fit(train_ds, validation_data=val_ds, epochs=epochs,
               steps_per_epoch=STEPS, class_weight=cw,
               callbacks=make_cbs(st["name"]), verbose=2)
 
@@ -1615,7 +1562,19 @@ prov = []
 SESS = requests.Session()
 # Wikimedia's UA policy asks for a descriptive agent with contact info.
 SESS.headers.update({"User-Agent": "AgrisenseResearch/1.0 (academic rice-disease model; "
-                                   "contact: set-your-email-here)"})
+                                   "contact: gau.mah077@gmail.com)"})
+
+def _fetch_bytes(url, max_bytes):
+    # Stream the body and stop at max_bytes: a 20 MB "photo" is never useful, and reading it
+    # whole wastes RAM and wall time on a crawl that is already time-boxed.
+    with SESS.get(url, timeout=15, stream=True) as r:
+        r.raise_for_status()
+        buf = io.BytesIO()
+        for chunk in r.iter_content(1 << 16):
+            buf.write(chunk)
+            if buf.tell() > max_bytes:
+                raise ValueError(f"body exceeds {max_bytes} bytes")
+        return buf.getvalue()
 
 def wiki_urls(q, n):
     r = SESS.get("https://commons.wikimedia.org/w/api.php", timeout=20, params={
@@ -1657,7 +1616,7 @@ def crawl():
                     for url, lic in gen:
                         if got >= CFG["crawl"]["per_class"]: break
                         try:
-                            with Image.open(io.BytesIO(SESS.get(url, timeout=15).content)) as im:
+                            with Image.open(io.BytesIO(_fetch_bytes(url, CFG["crawl"]["max_bytes"]))) as im:
                                 if min(im.size) < CFG["crawl"]["min_side"] or \
                                    im.format not in ("JPEG", "PNG"): continue
                                 p = d / f"{got:03d}.jpg"
@@ -1674,7 +1633,8 @@ def crawl():
     pd.DataFrame(prov).to_csv(CR / "provenance.csv", index=False)
     print(f"crawl done in {time.time()-t0:.0f}s -> {CR}")
 
-if CFG["crawl"]["enable"] and CFG["crawl"]["role"] == "stress_test":
+assert CFG["crawl"]["role"] == "stress_test", "finetune role was removed on purpose"
+if CFG["crawl"]["enable"] and not CFG["smoke"]:
     crawl()
     rows = []
     for p in sorted(CR.rglob("*.jpg")):
@@ -1728,42 +1688,46 @@ if CFG["crawl"]["enable"] and CFG["crawl"]["role"] == "stress_test":
 # NOTE the policy stays float32 until `clean` exists: `Resizing` is a NEW layer, so building
 # it while mixed_float16 is active gives it an f16 compute policy -> tf.ResizeBilinear on f16
 # -> ConverterError "'tf.ResizeBilinear' op is neither a custom op nor a flex op".
-_prev_policy = tf.keras.mixed_precision.global_policy()
-tf.keras.mixed_precision.set_global_policy("float32")
-export_base = build_model(NC)
-_w_tr, _w_ex = model.get_weights(), export_base.get_weights()
-assert [a.shape for a in _w_tr] == [a.shape for a in _w_ex], "rebuild changed the weight layout"
-export_base.set_weights(_w_tr)
-_w_chk = export_base.get_weights()
-assert all(np.array_equal(a, b) for a, b in zip(_w_tr, _w_chk)), "trained weights did not land"
+print(f"PIPELINE_VERSION {PIPELINE_VERSION} | export")
+if not CFG["smoke"]:
+    _prev_policy = tf.keras.mixed_precision.global_policy()
+    tf.keras.mixed_precision.set_global_policy("float32")
+    export_base = build_model(NC)
+    _w_tr, _w_ex = model.get_weights(), export_base.get_weights()
+    assert [a.shape for a in _w_tr] == [a.shape for a in _w_ex], "rebuild changed the weight layout"
+    export_base.set_weights(_w_tr)
+    _w_chk = export_base.get_weights()
+    assert all(np.array_equal(a, b) for a, b in zip(_w_tr, _w_chk)), "trained weights did not land"
 
-inp = tf.keras.Input((PRE, PRE, 3), batch_size=1, dtype=tf.float32)
-x   = tf.keras.layers.Resizing(SIZE, SIZE, interpolation="bilinear")(inp)
-clean = tf.keras.Model(inp, export_base(x), name="agrisense_infer")
-tf.keras.mixed_precision.set_global_policy(_prev_policy)   # restore only after clean exists
-print(f"export rebuilt as float32 from {model.name}: {len(_w_ex)} tensors copied and verified "
-      f"(max |delta| vs {model.name} = "
-      f"{max(float(np.abs(a - b).max()) for a, b in zip(_w_tr, _w_chk)):.1e})")
-clean.summary(line_length=110)
-clean.save(str(WORK / "agrisense_b0.keras"))
+    inp = tf.keras.Input((PRE, PRE, 3), batch_size=1, dtype=tf.float32)
+    x   = tf.keras.layers.Resizing(SIZE, SIZE, interpolation="bilinear")(inp)
+    clean = tf.keras.Model(inp, export_base(x), name="agrisense_infer")
+    tf.keras.mixed_precision.set_global_policy(_prev_policy)   # restore only after clean exists
+    print(f"export rebuilt as float32 from {model.name}: {len(_w_ex)} tensors copied and verified "
+          f"(max |delta| vs {model.name} = "
+          f"{max(float(np.abs(a - b).max()) for a, b in zip(_w_tr, _w_chk)):.1e})")
+    clean.summary(line_length=110)
+    clean.save(str(WORK / "agrisense_b0.keras"))
 
-contract = {
-    "classes": CLASSES, "graph_input_size": SIZE, "recommended_input_size": PRE,
-    "input_shape": [1, PRE, PRE, 3],
-    "channels_last": True, "value_range": [0, 255], "dtype": "float32",
-    "steps": ["decode RGB",
-              f"resize to exactly {PRE}x{PRE} with a high-quality filter "
-              "(Lanczos / imageSmoothingQuality=high / INTER_AREA)",
-              f"emit (1, {PRE}, {PRE}, 3) float32 in 0..255; graph resizes to {SIZE}"],
-    "do_not": ["nearest-neighbour resize", "feed any other HxW (the input is fixed)",
-               "divide by 255"],
-    "val_macro_f1": round(float(np.nanmean(f1_va)), 4),
-    "test_macro_f1": round(float(np.nanmean(f1_te)), 4),
-    "worst_class_recall": round(float(rec_te.min()), 4),
-}
-(WORK / "class_names.json").write_text(json.dumps(contract, indent=2))
-print(f"\nDECLARED {NC} == OUTPUT {clean.output_shape[-1]}  "
-      f"{'OK' if clean.output_shape[-1]==NC else 'MISMATCH — DO NOT SHIP'}")
+    contract = {
+        "classes": CLASSES, "graph_input_size": SIZE, "recommended_input_size": PRE,
+        "input_shape": [1, PRE, PRE, 3],
+        "channels_last": True, "value_range": [0, 255], "dtype": "float32",
+        "steps": ["decode RGB",
+                  f"resize to exactly {PRE}x{PRE} with a high-quality filter "
+                  "(Lanczos / imageSmoothingQuality=high / INTER_AREA)",
+                  f"emit (1, {PRE}, {PRE}, 3) float32 in 0..255; graph resizes to {SIZE}"],
+        "do_not": ["nearest-neighbour resize", "feed any other HxW (the input is fixed)",
+                   "divide by 255"],
+        "val_macro_f1": round(float(np.nanmean(f1_va)), 4),
+        "test_macro_f1": round(float(np.nanmean(f1_te)), 4),
+        "worst_class_recall": round(float(rec_te.min()), 4),
+    }
+    (WORK / "class_names.json").write_text(json.dumps(contract, indent=2))
+    print(f"\nDECLARED {NC} == OUTPUT {clean.output_shape[-1]}  "
+          f"{'OK' if clean.output_shape[-1]==NC else 'MISMATCH — DO NOT SHIP'}")
+else:
+    print("SMOKE: export skipped")
 
 
 
@@ -1776,59 +1740,63 @@ print(f"\nDECLARED {NC} == OUTPUT {clean.output_shape[-1]}  "
 
 # %%
 # CELL 19 — TFLite + parity check + bundle
-parity = None
-if CFG["export"]["tflite"]:
-    conv = tf.lite.TFLiteConverter.from_keras_model(clean)
-    conv.optimizations = []                 # no quantisation -> stays in builtin ops
-    tfl = conv.convert()
-    (WORK / "agrisense_b0.tflite").write_bytes(tfl)
-    print(f"tflite {(WORK/'agrisense_b0.tflite').stat().st_size/1e6:.1f} MB")
+print(f"PIPELINE_VERSION {PIPELINE_VERSION} | bundle")
+if not CFG["smoke"]:
+    parity = None
+    if CFG["export"]["tflite"]:
+        conv = tf.lite.TFLiteConverter.from_keras_model(clean)
+        conv.optimizations = []                 # no quantisation -> stays in builtin ops
+        tfl = conv.convert()
+        (WORK / "agrisense_b0.tflite").write_bytes(tfl)
+        print(f"tflite {(WORK/'agrisense_b0.tflite').stat().st_size/1e6:.1f} MB")
 
-    # PARITY CHECK: Keras vs the TFLite interpreter on real val images. Without this you
-    # are shipping a converted model on faith.
-    interp = tf.lite.Interpreter(model_content=tfl)
-    inp_d = interp.get_input_details()[0]; out_d = interp.get_output_details()[0]
-    interp.allocate_tensors()
-    # Read the input shape FROM THE INTERPRETER instead of assuming it. A dynamic HxW input
-    # reports an allocated shape of [1,1,1,3]; the old fallback then resized every probe to
-    # 1x1, so the parity check compared nothing. The export input is fixed now, so anything
-    # other than PRE means something is wrong and the number below would be meaningless.
-    shp = inp_d["shape"]
-    h, w = int(shp[1]), int(shp[2])
-    assert (h, w) == (PRE, PRE), f"unexpected TFLite input shape {list(shp)} — parity invalid"
-    rng_p = np.random.RandomState(0)
-    agree, maxdiff, nprobe = 0, 0.0, min(16, len(yva))
-    for i in rng_p.choice(len(yva), size=nprobe, replace=False):
-        probe = (Xva[i][None] if Xva is not None
-                 else np.asarray(Image.open(va["path"].iloc[i]).convert("RGB")
-                                 .resize((PRE, PRE), Image.BILINEAR))[None])
-        probe = probe.astype(np.float32)
-        k_out = clean.predict(probe, verbose=0)[0]   # `clean`, NOT `model`: model is fixed at
-        # SIZE (224) and raises on a 256px probe; clean takes (1, PRE, PRE, 3) like tflite.
-        interp.set_tensor(inp_d["index"], probe.astype(inp_d["dtype"]))
-        interp.invoke()
-        t_out = interp.get_tensor(out_d["index"])[0]
-        agree += int(np.argmax(k_out) == np.argmax(t_out))
-        maxdiff = max(maxdiff, float(np.abs(k_out - t_out).max()))
-    parity = agree / nprobe
-    print(f"PARITY keras-vs-tflite: {parity:.0%} argmax agreement over {nprobe} images "
-          f"at {h}x{w}, max |delta prob| = {maxdiff:.4f}")
-    if parity < 1.0:
-        print("!! parity < 100% — investigate before shipping")
+        # PARITY CHECK: Keras vs the TFLite interpreter on real val images. Without this you
+        # are shipping a converted model on faith.
+        interp = tf.lite.Interpreter(model_content=tfl)
+        inp_d = interp.get_input_details()[0]; out_d = interp.get_output_details()[0]
+        interp.allocate_tensors()
+        # Read the input shape FROM THE INTERPRETER instead of assuming it. A dynamic HxW input
+        # reports an allocated shape of [1,1,1,3]; the old fallback then resized every probe to
+        # 1x1, so the parity check compared nothing. The export input is fixed now, so anything
+        # other than PRE means something is wrong and the number below would be meaningless.
+        shp = inp_d["shape"]
+        h, w = int(shp[1]), int(shp[2])
+        assert (h, w) == (PRE, PRE), f"unexpected TFLite input shape {list(shp)} — parity invalid"
+        rng_p = np.random.RandomState(0)
+        agree, maxdiff, nprobe = 0, 0.0, min(16, len(yva))
+        for i in rng_p.choice(len(yva), size=nprobe, replace=False):
+            probe = (Xva[i][None] if Xva is not None
+                     else np.asarray(Image.open(va["path"].iloc[i]).convert("RGB")
+                                     .resize((PRE, PRE), Image.BILINEAR))[None])
+            probe = probe.astype(np.float32)
+            k_out = clean.predict(probe, verbose=0)[0]   # `clean`, NOT `model`: model is fixed at
+            # SIZE (224) and raises on a 256px probe; clean takes (1, PRE, PRE, 3) like tflite.
+            interp.set_tensor(inp_d["index"], probe.astype(inp_d["dtype"]))
+            interp.invoke()
+            t_out = interp.get_tensor(out_d["index"])[0]
+            agree += int(np.argmax(k_out) == np.argmax(t_out))
+            maxdiff = max(maxdiff, float(np.abs(k_out - t_out).max()))
+        parity = agree / nprobe
+        print(f"PARITY keras-vs-tflite: {parity:.0%} argmax agreement over {nprobe} images "
+              f"at {h}x{w}, max |delta prob| = {maxdiff:.4f}")
+        if parity < 1.0:
+            print("!! parity < 100% — investigate before shipping")
 
-import zipfile
-with zipfile.ZipFile(WORK / "agrisense_bundle.zip", "w", zipfile.ZIP_DEFLATED) as z:
-    z.write(WORK / "agrisense_b0.keras", "agrisense_b0.keras")
-    z.write(WORK / "class_names.json", "class_names.json")
-    if CFG["export"]["tflite"]: z.write(WORK / "agrisense_b0.tflite", "agrisense_b0.tflite")
-    for f in ("val_report.csv", "test_confusion.csv", "field_stress_test.csv"):
-        if (OUT / f).exists(): z.write(OUT / f, f)
-    if parity is not None:
-        z.writestr("parity.txt", f"keras-vs-tflite argmax agreement {parity:.0%}\n")
-print(f"bundle {(WORK/'agrisense_bundle.zip').stat().st_size/1e6:.1f} MB — download from "
-      f"Kaggle Output, then attach it as a Dataset for future runs")
-print(f"total notebook wall clock {elapsed():.1f} min")
-print("TFJS: separate notebook — pip install tensorflow==2.15.1 tensorflowjs numpy==1.26.4")
+    import zipfile
+    with zipfile.ZipFile(WORK / "agrisense_bundle.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        z.write(WORK / "agrisense_b0.keras", "agrisense_b0.keras")
+        z.write(WORK / "class_names.json", "class_names.json")
+        if CFG["export"]["tflite"]: z.write(WORK / "agrisense_b0.tflite", "agrisense_b0.tflite")
+        for f in ("val_report.csv", "test_confusion.csv", "field_stress_test.csv"):
+            if (OUT / f).exists(): z.write(OUT / f, f)
+        if parity is not None:
+            z.writestr("parity.txt", f"keras-vs-tflite argmax agreement {parity:.0%}\n")
+    print(f"bundle {(WORK/'agrisense_bundle.zip').stat().st_size/1e6:.1f} MB — download from "
+          f"Kaggle Output, then attach it as a Dataset for future runs")
+    print(f"total notebook wall clock {elapsed():.1f} min")
+    print("TFJS: separate notebook — pip install tensorflow==2.15.1 tensorflowjs numpy==1.26.4")
+else:
+    print("SMOKE: bundle skipped")
 
 
 

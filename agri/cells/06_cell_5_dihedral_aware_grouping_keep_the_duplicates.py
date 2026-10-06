@@ -52,9 +52,9 @@ def clusters_at(keys, nd, B=8):
         for i in idx:
             cid[i] = j
     if not nd:
-        return cid, 0                      # ALWAYS (ids, merged): both callers unpack 2 values,
-                                           # and the sweep list contains 0. A bare cid raised
-                                           # "too many values to unpack" at nd=0.
+        return cid, 0                      # ALWAYS (ids, merged): both callers unpack 2 values.
+                                           # A bare cid raised "too many values to unpack" at
+                                           # nd=0 (the old sweep list contained 0).
     buckets = defaultdict(list)
     for j, k in enumerate(key_list):
         v = int(k, 16)
@@ -73,8 +73,8 @@ def clusters_at(keys, nd, B=8):
     return out, merged
 
 def grouped_split(man, sp, seed):
-    """Stratified group split. Defined here, not in Cell 6, so the threshold sweep below can
-    measure leak counts for every candidate `near_dist` before one of them is chosen.
+    """Stratified group split. Defined here, not in Cell 6, so Cell 5 and Cell 6 share one
+    implementation (a second copy is how the two halves drift apart).
 
     Two properties matter, and the previous version had neither it claimed:
       * per-CLASS ratios, not just the global total. Global bin packing alone gave
@@ -138,63 +138,21 @@ def leak_scan(man, keys, tight=7, B=8):
     return leaks
 
 if CFG["dedupe"]["enable"]:
-    # Cache the canonical keys. Hashing is the only expensive step (84 s for 6617 images);
-    # the threshold sweep below re-runs it zero times, so trying several `near_dist` values is
-    # nearly free. Without this, every threshold experiment cost a full re-hash and nobody
-    # would try more than one.
-    cache = OUT / "canon_keys.csv"
-    keys = None
-    if cache.exists() and not CFG["dedupe"].get("rehash", False):
-        d = pd.read_csv(cache)
-        if len(d) == len(man) and d["path"].tolist() == man["path"].tolist():
-            keys = d["key"].tolist()
-            print(f"reused cached canonical keys for {len(keys)} images "
-                  f"(set dedupe.rehash=True, or delete {cache.name}, to recompute)")
-    if keys is None:
-        t = time.time()
-        dia = CFG["dedupe"]["dihedral"]
-        with ThreadPoolExecutor(CFG["workers"]) as ex:
-            keys = list(ex.map(lambda p: _canon_key(p, dia), man["path"].tolist()))
-        ok = np.array([k is not None for k in keys])
-        print(f"hashed {ok.sum()}/{len(ok)} in {time.time()-t:.0f}s "
-              f"(dihedral={dia}, {8 if dia else 1} variants/img)")
-        man = man[ok].reset_index(drop=True)
-        keys = [k for k, m in zip(keys, ok) if m]
-        pd.DataFrame({"path": man["path"], "key": keys}).to_csv(cache, index=False)
+    # Hash the canonical keys fresh every run. The old on-disk cache was removed on purpose:
+    # it could silently serve stale keys after a manifest change, and hashing is only ~84 s
+    # for the full set (far less in smoke).
+    t = time.time()
+    dia = CFG["dedupe"]["dihedral"]
+    with ThreadPoolExecutor(CFG["workers"]) as ex:
+        keys = list(ex.map(lambda p: _canon_key(p, dia), man["path"].tolist()))
+    ok = np.array([k is not None for k in keys])
+    print(f"hashed {ok.sum()}/{len(ok)} in {time.time()-t:.0f}s "
+          f"(dihedral={dia}, {8 if dia else 1} variants/img)")
+    man = man[ok].reset_index(drop=True)
+    keys = [k for k, m in zip(keys, ok) if m]
 
     B = CFG["dedupe"]["bands"]
     nd = CFG["dedupe"]["near_dist"]
-
-    # ---- the threshold sweep: measure the trade-off instead of guessing it ----
-    # Merging harder drives cross-split leaks toward zero but grows clusters, which distorts
-    # class ratios and folds more label noise together. Both sides are printed so the choice
-    # is made on numbers. Previously this was a guess, and one guess already cost a full run.
-    sweep = CFG["dedupe"].get("sweep") or [nd]
-    sweep = [x for x in sweep if x >= 0]
-    if len(sweep) > 1:
-        print(f"\nnear_dist sweep  ({len(keys)} images, split {CFG['split']}, seed {SEED})")
-        print(f"  {'nd':>3} | {'clusters':>8} | {'largest':>7} | {'multi-img':>9} | "
-              f"{'x-class':>7} | {'x-src':>5} | {'leaks@7':>8} | {'worst dev':>9}")
-        for n_ in sorted(sweep):
-            c_, _m = clusters_at(keys, n_, B)
-            m2 = man.copy()
-            m2["cluster"] = c_
-            sz = pd.Series(c_).value_counts()
-            mm = sz[sz > 1]
-            xc = int((m2.groupby("cluster")["class"].nunique() > 1).sum())
-            xs_ = int((m2.groupby("cluster")["source"].nunique() > 1).sum())
-            sp_, _g = grouped_split(m2, CFG["split"], SEED)
-            lk = leak_scan(sp_, keys, tight=7, B=B)
-            nlk = sum(len(v) for v in lk.values())
-            tb = sp_.groupby(["class", "split"]).size().unstack(fill_value=0)
-            wd = max(max(abs(tb.loc[c, s] - tb.loc[c].sum() * CFG["split"][s]) / tb.loc[c].sum()
-                          for s in CFG["split"] if s in tb.columns) for c in tb.index)
-            mark = "  <= chosen" if n_ == nd else ""
-            print(f"  {n_:>3} | {len(sz):>8} | {int(sz.max()):>7} | {int(mm.sum()):>9} | "
-                  f"{xc:>7} | {xs_:>5} | {nlk:>8} | {wd:>8.1%}{mark}")
-        print("  leaks@7 = near-duplicate pairs straddling splits, detected at Hamming <= 7.")
-        print("  Read the row you want and set CFG['dedupe']['near_dist'] to it.")
-
     man["cluster"], _merged = clusters_at(keys, nd, B)
     print(f"\nchosen near_dist {nd}: {_merged} key pairs merged within Hamming <= {nd} "
           f"(B={B}, complete for nd <= {B - 1})")

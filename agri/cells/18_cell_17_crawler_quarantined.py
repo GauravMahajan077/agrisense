@@ -9,7 +9,19 @@ prov = []
 SESS = requests.Session()
 # Wikimedia's UA policy asks for a descriptive agent with contact info.
 SESS.headers.update({"User-Agent": "AgrisenseResearch/1.0 (academic rice-disease model; "
-                                   "contact: set-your-email-here)"})
+                                   "contact: gau.mah077@gmail.com)"})
+
+def _fetch_bytes(url, max_bytes):
+    # Stream the body and stop at max_bytes: a 20 MB "photo" is never useful, and reading it
+    # whole wastes RAM and wall time on a crawl that is already time-boxed.
+    with SESS.get(url, timeout=15, stream=True) as r:
+        r.raise_for_status()
+        buf = io.BytesIO()
+        for chunk in r.iter_content(1 << 16):
+            buf.write(chunk)
+            if buf.tell() > max_bytes:
+                raise ValueError(f"body exceeds {max_bytes} bytes")
+        return buf.getvalue()
 
 def wiki_urls(q, n):
     r = SESS.get("https://commons.wikimedia.org/w/api.php", timeout=20, params={
@@ -51,7 +63,7 @@ def crawl():
                     for url, lic in gen:
                         if got >= CFG["crawl"]["per_class"]: break
                         try:
-                            with Image.open(io.BytesIO(SESS.get(url, timeout=15).content)) as im:
+                            with Image.open(io.BytesIO(_fetch_bytes(url, CFG["crawl"]["max_bytes"]))) as im:
                                 if min(im.size) < CFG["crawl"]["min_side"] or \
                                    im.format not in ("JPEG", "PNG"): continue
                                 p = d / f"{got:03d}.jpg"
@@ -68,7 +80,8 @@ def crawl():
     pd.DataFrame(prov).to_csv(CR / "provenance.csv", index=False)
     print(f"crawl done in {time.time()-t0:.0f}s -> {CR}")
 
-if CFG["crawl"]["enable"] and CFG["crawl"]["role"] == "stress_test":
+assert CFG["crawl"]["role"] == "stress_test", "finetune role was removed on purpose"
+if CFG["crawl"]["enable"] and not CFG["smoke"]:
     crawl()
     rows = []
     for p in sorted(CR.rglob("*.jpg")):

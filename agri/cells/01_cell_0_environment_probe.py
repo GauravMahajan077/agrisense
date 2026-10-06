@@ -16,6 +16,10 @@ os.environ.setdefault("TF_NUM_INTRAOP_THREADS", str(min(8, _NC)))
 os.environ.setdefault("TF_NUM_INTEROP_THREADS", "2")
 T0 = time.time()
 
+# Bumped on every intentional pipeline change. Printed at every entry point (start, train,
+# export, bundle) so a stale paste is visible in the log instead of silently shipping.
+PIPELINE_VERSION = "2.0.0"
+
 import numpy as np, tensorflow as tf
 
 KAGGLE = Path("/kaggle").is_dir()
@@ -75,7 +79,8 @@ def _dir_gb(d):
     except Exception:
         return 0.0
 
-print(f"python {sys.version.split()[0]} | cpus {_NC} | platform {'kaggle' if KAGGLE else 'local'}")
+print(f"PIPELINE_VERSION {PIPELINE_VERSION} | python {sys.version.split()[0]} | cpus {_NC} | "
+      f"platform {'kaggle' if KAGGLE else 'local'}")
 print(f"tf {tf.__version__} | numpy {np.__version__} | keras {tf.keras.__version__}")
 print(f"RAM {RAM_GB:.1f} GB total / {RAM_AVAIL_GB:.1f} GB available | disk {free_gb:.1f} GB free in WORK")
 print(f"temp: {_tmp_gb()} (Cell 3 redirects TMPDIR here, so WORK is the only limit)")

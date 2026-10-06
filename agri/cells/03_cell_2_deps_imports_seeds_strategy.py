@@ -3,31 +3,32 @@
 import importlib.util, subprocess as _sp
 
 def _pip(*pkgs, required=True):
-    # Probe by IMPORT name, install by PyPI name. "PIL" is the import name of "Pillow"; pip has
-    # no package called "PIL", so installing the probe name fails on a clean environment.
-    _PYPI = {"PIL": "Pillow"}
-    missing = [p for p in pkgs if importlib.util.find_spec(p) is None]
+    # Each arg is (import_name, install_spec). The import name is what we probe; the spec is
+    # what pip installs, and it is PINNED so a future package release cannot silently change
+    # the pipeline. "PIL" is the import name of "Pillow" — pip has no package called "PIL".
+    missing = [s for s in pkgs if importlib.util.find_spec(s[0]) is None]
     if not missing:
-        print(f"present: {' '.join(pkgs)}"); return
-    names = [_PYPI.get(p, p) for p in missing]
-    print(f"installing: {' '.join(names)} (import name(s): {' '.join(missing)})")
+        print(f"present: {' '.join(s[0] for s in pkgs)}"); return
+    names = [s[1] for s in missing]
+    print(f"installing: {' '.join(names)} (import name(s): {' '.join(s[0] for s in missing)})")
     try:
         _sp.run([sys.executable, "-m", "pip", "install", "-q", *names], check=True)
         # pip returning 0 is not proof: the install can land yet the module still not import
         # (stale sys.path cache, or a shadowing local file). Re-probe before claiming OK.
         importlib.invalidate_caches()
-        for p in missing:
-            if importlib.util.find_spec(p) is None:
-                raise ImportError(f"{p} still not importable after installing {' '.join(names)}")
+        for imp, _ in missing:
+            if importlib.util.find_spec(imp) is None:
+                raise ImportError(f"{imp} still not importable after installing {' '.join(names)}")
         print("  installed and importable")
     except Exception as e:
         if required: raise
         print(f"  optional install failed ({type(e).__name__}) — continuing without it")
 
-# NOTE: import name "PIL" is the PyPI package "Pillow" — _pip maps between them.
-_pip("PIL", "imagehash")
+# Pinned: imagehash and ddgs are the two packages this pipeline actually installs on Kaggle.
+# Pillow is a Kaggle preinstall, so it is left unpinned (only installed if missing).
+_pip(("PIL", "Pillow"), ("imagehash", "imagehash==4.3.2"))
 try:
-    _pip("ddgs", required=False)       # DuckDuckGo image search, crawler only
+    _pip(("ddgs", "ddgs==9.16.0"), required=False)   # DuckDuckGo image search, crawler only
 except Exception:
     pass
 

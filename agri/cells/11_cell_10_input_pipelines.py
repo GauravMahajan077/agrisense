@@ -42,9 +42,7 @@ if USE_RAM:
     n_tr = len(ytr)
     def gen_train():
         while True:
-            order = (rng_ds.permutation(n_tr) if rep_per_img is None
-                     else rng_ds.permutation(np.repeat(np.arange(n_tr), rep_per_img)))
-            for i in order:
+            for i in rng_ds.permutation(n_tr):
                 yield Xtr[i], ytr[i]
     def gen_eval(X, y):
         for i in range(len(y)):
@@ -69,9 +67,7 @@ else:
     def gen_train():
         paths = tr["path"].tolist()
         while True:
-            order = (rng_ds.permutation(n_tr) if rep_per_img is None
-                     else rng_ds.permutation(np.repeat(np.arange(n_tr), rep_per_img)))
-            for i in order:
+            for i in rng_ds.permutation(n_tr):
                 yield dec(paths[i]), ytr[i]
     train_ds = (tf.data.Dataset.from_generator(
                     gen_train, output_signature=(tf.TensorSpec([PRE, PRE, 3], tf.uint8),
