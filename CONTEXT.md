@@ -37,8 +37,8 @@ Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rul
 
 ## Other confirmed defects (not from the audit)
 - `verify.py` line 62 asserts `"key PAIRS merged"` but the source prints `"key pairs merged"` → `verify.py` exits 1.
-- Hygiene: pip installs unpinned (line 378), crawler has no byte cap (`.content`, line 1653),
-  User-Agent says `contact: set-your-email-here` (line 1611), `multi_gpu: True` default,
+- Hygiene (all fixed in Phase 2, commit `f01e9f3`): pip installs unpinned, crawler has no byte cap
+  (`.content`), User-Agent says `contact: set-your-email-here`, `multi_gpu: True` default,
   no `smoke` mode, no `PIPELINE_VERSION`.
 
 ## Phase status
@@ -47,8 +47,8 @@ Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rul
 | **0** — `AGENTS.md` + `git init` + baseline commit | ✅ DONE (commit `f9c8a74`) |
 | **cleanup** — delete false-confidence tests, temp orphans | ✅ DONE (commit `a7d823c`) |
 | **1** — P0 crash fixes | ✅ DONE (commit `d9492b7`) |
-| **2** — P1 simplify (remove sweep/LSH/cache/`effective`/`oversample`/finetune-crawl, `multi_gpu: False`, smoke mode, `PIPELINE_VERSION`, pin pip, UA email, crawl byte cap) | ⬜ NEXT |
-| **3** — P2 honest eval (8-variant D4 brute force, same-class merge only, cross-class dropped from val/test, source-held-out split, macro-F1 per source + bootstrap CI, abstain rule) | ⬜ |
+| **2** — P1 simplify (remove sweep/LSH/cache/`effective`/`oversample`/finetune-crawl, `multi_gpu: False`, smoke mode, `PIPELINE_VERSION`, pin pip, UA email, crawl byte cap) | ✅ DONE (commit `f01e9f3`) |
+| **3** — P2 honest eval (8-variant D4 brute force, same-class merge only, cross-class dropped from val/test, source-held-out split, macro-F1 per source + bootstrap CI, abstain rule) | ⬜ NEXT |
 | **4** — P3 field-test loader (eval only) | ⬜ |
 | restructure → `agrisense.py` + 3-cell notebook | ⬜ deferred until 0–4 pass |
 
@@ -79,6 +79,39 @@ Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rul
 
 **Verification limits:** local = TF 2.21 / Keras 3.13.2 / Python 3.13. Kaggle = TF 2.20.
 Local green ≠ Kaggle green. A Kaggle smoke run must be pasted before claiming Phase 1 works there.
+
+## Phase 2 — what was actually done (commit `f01e9f3`)
+1. **CFG:** `multi_gpu: False` (single GPU default), `smoke: False`, dedupe reduced to
+   `{enable, dihedral, near_dist, bands}` (sweep + rehash removed), imbalance reduced to
+   `{mode: "class_weight"}` (effective/oversample removed), crawl `role: "stress_test"` only +
+   `max_bytes: 5_000_000`.
+2. **Cell 2:** `_pip` now takes `(import_name, install_spec)` tuples; pins `imagehash==4.3.2`,
+   `ddgs==9.16.0` (both verified to exist on PyPI).
+3. **Cell 4:** smoke caps manifest to 40 img/class (`man.groupby("class").head(40)`).
+4. **Cell 5:** hash cache removed (fresh hash every run — no stale-key risk); sweep block removed;
+   single `near_dist` merge via `clusters_at` (banded merge kept until Phase 3's brute force).
+5. **Cell 8:** `assert mode == "class_weight"`; plain `CategoricalCrossentropy` LOSS.
+6. **Cell 9/10:** oversample/`rep_per_img` removed; `gen_train` simplified in RAM + disk paths.
+7. **Cell 14:** `cw` always class_weight; `epochs = 1 if CFG["smoke"] else st["epochs"]`;
+   `PIPELINE_VERSION` printed.
+8. **Cell 17:** UA contact → `gau.mah077@gmail.com`; `_fetch_bytes(url, max_bytes)` streaming cap
+   replaces `.content`; smoke skips crawl; `assert role == "stress_test"` (finetune removed).
+9. **Cell 18/19:** export + TFLite/bundle wrapped in `if not CFG["smoke"]:` (else prints
+   "SMOKE: export/bundle skipped"); `PIPELINE_VERSION` printed at both entry points.
+10. **`PIPELINE_VERSION = "2.0.0"`** defined in Cell 0, printed at start/train/export/bundle.
+11. **README.md** updated: multi_gpu default, imbalance section, finetune role, troubleshooting
+    row, smoke-mode note.
+
+**Validation (all real, pasted in session):**
+- `split_cells.py` round-trip + `verify.py` → ALL PASS, exit 0.
+- AST-extracted shipped-source checks (40 assertions, temp file outside repo): CFG shape,
+  removed-feature absence (`rep_per_img`, `effective_beta`, `oversample_cap`, `set-your-email`,
+  `"sweep":`, `"rehash":`, `canon_keys.csv`), pip pins, smoke guards in Cells 4/14/17/18/19,
+  `_fetch_bytes` defined+used, role assert — ALL PASS, exit 0.
+- `clean`/`parity` referenced only inside the non-smoke branches (grep-verified).
+
+**Verification limits:** same as Phase 1 — local TF 2.21 ≠ Kaggle TF 2.20. Smoke mode exists
+specifically so the user can paste a fast Kaggle run; that paste is the Phase 2 acceptance gate.
 
 ## Headline metric (the number that matters)
 Source-held-out: train on `anshul6` + `indo3`, test on `dedeikh` across the 5 shared classes

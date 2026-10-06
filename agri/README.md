@@ -111,15 +111,13 @@ and the disk problem. Prefer it.
 
 ### Using both T4s
 
-`CFG["multi_gpu"] = True` (default) wraps the model in `tf.distribute.MirroredStrategy` for
-roughly 1.7x throughput. Two details it handles:
+`CFG["multi_gpu"] = False` (default). Single GPU is the default because `MirroredStrategy`
+adds friction (XLA off, batch split) for no accuracy gain. Set it to `True` to try both T4s
+for roughly 1.7x throughput; two details it handles:
 
 - Variables are created inside `strategy.scope()` so they become `MirroredVariable`s.
 - XLA is auto-disabled (`jit_compile` is skipped), because XLA plus `MirroredStrategy` has
   known friction on T4.
-
-If stage training errors, set `"multi_gpu": False` and Cell 2 falls back to a single GPU with
-no other change.
 
 ### Stack note: Python 3.13 / TF 2.20 / Keras 3
 
@@ -412,17 +410,8 @@ byte-bands, so without that the counts inflate about 7x.
 
 ## 5. Imbalance
 
-`CFG["imbalance"]["mode"]`, pick one:
-
-| mode | when |
-|---|---|
-| `class_weight` | default. `N/(NC·n_c)`. Costs nothing. |
-| `effective` | severe imbalance, β=0.999. Less aggressive than `class_weight`. |
-| `oversample` | a rare class is still flat after weighting. Caps at 3x the **median** class, and the repeat vector is computed *after* preloading so it cannot go stale. |
-| `none` | ratio is already acceptable. |
-
-Pick one. `class_weight` and `oversample` together would double-count the imbalance, so
-Cell 14 passes `class_weight=None` whenever `oversample` is active.
+`class_weight` only. `effective` and `oversample` were removed on purpose (audit): class_weight
+is the one that worked, and the others added config surface without a measured win.
 
 Weights are computed in Cell 8 from the **manifest**, which is what fixes the
 `'_PrefetchDataset' object has no attribute 'class_names'` crash — counting never touches a
@@ -489,8 +478,8 @@ notebook, and it is the one thing no clean lab dataset can give you.
 Notes:
 - Wikimedia Commons is tried first because it does not block datacenter IPs. DuckDuckGo
   usually does get blocked from Kaggle. The cell degrades gracefully if so.
-- Set `role: "finetune"` to actually train on crawled images. Dedupe against train first and
-  expect small gains.
+- `role` is `stress_test` only — the `finetune` role was removed on purpose (audit). Cell 17
+  asserts this so a stale config cannot silently re-enable it.
 - Web images are **not licensed for redistribution**. Fine for internal evaluation; do not
   ship them in a product.
 
@@ -515,6 +504,10 @@ Cell numbers below match the filenames in `cells/`, so the table and the files l
 
 Stop-and-read checkpoints are cells **4, 5 and 15**. Cells 0–9 never need a GPU.
 
+**Smoke mode:** set `CFG["smoke"] = True` for a fast sanity run — 40 images/class, 1
+epoch/stage, no crawl, no export/bundle. Run it before any full run; it exercises every cell
+end-to-end in a few minutes.
+
 Reuse the model in a later run: add `agrisense_bundle.zip` as a Kaggle Dataset, or `Save
 Version` and attach the Output.
 
@@ -530,7 +523,7 @@ Version` and attach the Output.
 | `every cluster is a singleton` (Cell 6) | Grouping was inert, so the leak assert proves nothing. |
 | `DROPPED` in Cell 7 | Class could not reach 120 train images. Add a source or lower `min_class`. |
 | `backbone 0/M` in stage B or C | Unfreezing regressed. The Cell 14 assert should have fired. |
-| `worst recall` ≈ 0 | Minority collapsed. Switch `imbalance.mode` to `oversample`. |
+| `worst recall` ≈ 0 | Minority collapsed. Add a source for that class or lower `min_class`. |
 | `GAP` > 0.05 | Split still leaks, or is too small. |
 | `GAP` < 0 | Val was pessimistic. Fine — trust test. |
 | TFLite `PARITY` < 100% | Do not ship the converted model. |
