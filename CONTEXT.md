@@ -319,6 +319,41 @@ acceptance gate is a user-pasted Kaggle smoke re-run. Expected: sources print `[
 /kaggle/input/*` and match the exact mount path. Then full run → watch the PARITY line in
 export/bundle (not yet exercised on Kaggle).
 
+## Phase 5.3 — full-run crash: cross-class move split a cluster (PIPELINE_VERSION 3.1.2)
+
+**Trigger:** the 3.1.1 full run on Kaggle (smoke=False) crashed in `split()` with
+`AssertionError: LEAK: 1 clusters in both train and test`. Log showed `cluster overlap
+train/val: 0` / `train/test: 1` after `cross-class near-duplicates: 10 images; 5 moved from
+val/test to train`.
+
+**Root cause:** the cross-class move in `split()` moved individual flagged images to train
+(`moved = self.cross_mask & (self.man["split"] != "train")`). When a flagged image was a member
+of a multi-member cluster (111 such clusters in the full run), moving just that image split the
+cluster across splits → the structural leak assert fired. `min_class()` had the same
+individual-image re-apply (`self.man["xclass"] & ...`) with no assert, so it would have leaked
+silently into the final splits. Latent since Phase 5.1 (noted during reproduction: "if the
+cross-class move splits a multi-member cluster, split()'s assert fires").
+
+**Fix in `agri/new/agrisense.py`:** both places now move the WHOLE cluster of any
+cross-class/xclass image to train (`bad_clusters = set(...); moved = cluster.isin(bad_clusters)
+& split != "train"`). Cluster members are near-duplicates (merged at `near_dist`), so if one
+carries an unreliable label they all do — and moving whole clusters preserves the grouped-split
+invariant (a cluster is entirely within one split).
+
+**Validation (all real, pasted in session):**
+- `python -B split_cells.py` → 4 cells regenerated (3.1.2).
+- `python -B verify.py` → ALL PASS, exit 0 (79 checks incl. 2 new Phase 5.3 checks).
+- `python -B test_phase3_dedupe.py` → ALL PASS, exit 0.
+- `python -B test_phase4_field_test.py` → ALL PASS, exit 0.
+- Crash reproduction: synthetic 3-member cluster with one cross-class flag → `split()` no longer
+  asserts, whole cluster lands in train, `min_class()` keeps the invariant, no cluster spans two
+  splits.
+
+**Verification limits:** same as Phase 5.2 — local TF 2.21 ≠ Kaggle TF 2.20. The 3.1.2
+acceptance gate is a user-pasted Kaggle full re-run (smoke=False). Expected: `split sizes`
+prints, no `LEAK` assert, `cluster overlap train/val: 0` / `train/test: 0` / `val/test: 0`,
+then training → held-out macro-F1 + bootstrap CI (headline metric) → export/bundle PARITY line.
+
 **Verification limits:** same as Phases 1–4 — local TF 2.21 ≠ Kaggle TF 2.20. The Phase 5
 acceptance gate is a user-pasted Kaggle smoke run of the new 3-cell notebook (Cell 1 CONFIG →
 Cell 2 MODULE → Cell 3 RUN).

@@ -358,6 +358,11 @@ Cell 6's cluster-overlap assert **cannot fail**: the split is assigned per clust
 is impossible by construction. Treating it as a safety net is a mistake, and the pipeline says
 so in its own output.
 
+One caveat (fixed in 3.1.2): the cross-class move used to relocate individual flagged images
+to train, which split a multi-member cluster across splits and tripped the assert on the real
+data. It now moves the **whole cluster** of any cross-class image, so the per-cluster invariant
+holds again.
+
 The check that *can* fail is the cross-split near-duplicate scan. Cell 5 merges same-class
 near-duplicates at Hamming <= 4; images that are visually near-identical but pHash-different
 (re-cropped, re-encoded, rotated off-grid) never get merged and **can** straddle train and

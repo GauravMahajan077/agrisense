@@ -47,7 +47,7 @@ import tensorflow.keras.callbacks as KC     # KC, not K — K is used as a class
 
 # Bumped on every intentional pipeline change. Printed at every entry point (start, train,
 # export, bundle) so a stale paste is visible in the log instead of silently shipping.
-PIPELINE_VERSION = "3.1.1"
+PIPELINE_VERSION = "3.1.2"
 
 
 # =====================================================================================
@@ -1010,7 +1010,12 @@ class Pipeline:
         # noise) but move them out of val/test. This is the audit's "cross-class dropped from
         # val/test".
         if self.cross_mask is not None:
-            moved = self.cross_mask & (self.man["split"] != "train")
+            # Move the WHOLE cluster of any cross-class near-duplicate to train: cluster
+            # members are near-duplicates, so if one carries an unreliable label they all do.
+            # Moving only the flagged image would split a multi-member cluster across splits
+            # and trip the leak assert below (seen in the 3.1.1 full run).
+            bad_clusters = set(self.man.loc[self.cross_mask, "cluster"])
+            moved = self.man["cluster"].isin(bad_clusters) & (self.man["split"] != "train")
             n_moved = int(moved.sum())
             self.man.loc[moved, "split"] = "train"
             self.got = {k: int((self.man["split"] == k).sum()) for k in self.sp}
@@ -1128,7 +1133,11 @@ class Pipeline:
             self.man, _ = self.grouped_split(self.man, self.sp, self.cfg["seed"])
             # grouped_split rebuilt the split column from scratch, which silently undoes the
             # cross-class move from split(). Re-apply it: unreliable labels stay in TRAIN only.
-            self.man.loc[self.man["xclass"] & (self.man["split"] != "train"), "split"] = "train"
+            # Move whole clusters (not just flagged images) so a multi-member cluster is never
+            # split across splits.
+            bad_clusters = set(self.man.loc[self.man["xclass"], "cluster"])
+            self.man.loc[self.man["cluster"].isin(bad_clusters)
+                         & (self.man["split"] != "train"), "split"] = "train"
             bad = self.starved_classes(self.man, self.CLASSES, mc)
             if not bad:
                 print(f"\nmin_class OK: every class has >= {mc} TRAIN images "

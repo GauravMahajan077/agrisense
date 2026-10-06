@@ -98,7 +98,7 @@ if mod.exists():
         mtree = None
         check("module parses", False, str(e))
 
-    check("PIPELINE_VERSION is 3.1.1", 'PIPELINE_VERSION = "3.1.1"' in msrc)
+    check("PIPELINE_VERSION is 3.1.2", 'PIPELINE_VERSION = "3.1.2"' in msrc)
     check("DEFAULT_CFG present", find_assign(mtree, "DEFAULT_CFG") is not None if mtree else False)
 
     if mtree:
@@ -206,6 +206,14 @@ if mod.exists():
           '"*/*/*"' in method_source(msrc, "Pipeline", "_mounted"))
     check("cleanup frees held-out pixels",
           "self.Xh = None" in method_source(msrc, "Pipeline", "cleanup"))
+
+    # Phase 5.3 — full-run crash: cross-class move split a multi-member cluster across splits.
+    check("split moves whole cross-class clusters to train",
+          'bad_clusters = set(self.man.loc[self.cross_mask, "cluster"])'
+          in method_source(msrc, "Pipeline", "split"))
+    check("min_class re-applies whole-cluster xclass move",
+          'bad_clusters = set(self.man.loc[self.man["xclass"], "cluster"])'
+          in method_source(msrc, "Pipeline", "min_class"))
 
 print("\n=== notebook: agrisense_notebook.py ===")
 nb = pathlib.Path("agrisense_notebook.py")
