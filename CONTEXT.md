@@ -6,7 +6,7 @@ Session state file. Updated at the end of every phase. Committed to git.
 Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rules live in
 [`AGENTS.md`](AGENTS.md) — that file is authoritative for *how* to work here.
 
-- **Source of truth:** `agri/agrisense_kaggle.py` — 22 `# %%` cells (1 markdown + 21 code), 1,824 lines.
+- **Source of truth:** `agri/agrisense_kaggle.py` — 23 `# %%` cells (1 markdown + 22 code), 1,955 lines.
 - **Generated output:** `agri/cells/*` — produced by `python split_cells.py`, never hand-edited.
 - **`agri/split_cells.py`** — generator *and* round-trip verifier (every non-empty line of every cell
   must appear in the source, in order). This is what keeps source ↔ cells from drifting.
@@ -48,8 +48,8 @@ Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rul
 | **cleanup** — delete false-confidence tests, temp orphans | ✅ DONE (commit `a7d823c`) |
 | **1** — P0 crash fixes | ✅ DONE (commit `d9492b7`) |
 | **2** — P1 simplify (remove sweep/LSH/cache/`effective`/`oversample`/finetune-crawl, `multi_gpu: False`, smoke mode, `PIPELINE_VERSION`, pin pip, UA email, crawl byte cap) | ✅ DONE (commit `f01e9f3`) |
-| **3** — P2 honest eval (8-variant D4 brute force, same-class merge only, cross-class dropped from val/test, source-held-out split, macro-F1 per source + bootstrap CI, abstain rule) | ⬜ NEXT |
-| **4** — P3 field-test loader (eval only) | ⬜ |
+| **3** — P2 honest eval (8-variant D4 brute force, same-class merge only, cross-class dropped from val/test, source-held-out split, macro-F1 per source + bootstrap CI, abstain rule) | ✅ DONE (commit `ab04f7d`) |
+| **4** — P3 field-test loader (eval only) | ⬜ NEXT |
 | restructure → `agrisense.py` + 3-cell notebook | ⬜ deferred until 0–4 pass |
 
 ## Phase 1 — what was actually done (commit `d9492b7`)
@@ -113,7 +113,45 @@ Local green ≠ Kaggle green. A Kaggle smoke run must be pasted before claiming 
 **Verification limits:** same as Phase 1 — local TF 2.21 ≠ Kaggle TF 2.20. Smoke mode exists
 specifically so the user can paste a fast Kaggle run; that paste is the Phase 2 acceptance gate.
 
+## Phase 3 — what was actually done (commit `ab04f7d`)
+1. **CFG:** `held_out_source: "dedeikh"` (train anshul6+indo3, test dedeikh, 5 shared classes),
+   `abstain_threshold: 0.5`, `bootstrap_iters: 2000`; dedupe reduced to `{enable, dihedral,
+   near_dist}` (bands removed — brute force needs no banding).
+2. **Cell 4:** routes `held_out_source` rows into `man_held` before dedupe/split; `man_held = None`
+   when unset; WARNING if the source is absent from the manifest.
+3. **Cell 5:** `_canon_key` → `_d4_keys` (all 8 D4-variant pHash ints, not the min);
+   `clusters_at` (banded LSH) → `d4_dist_matrix` (full (n,n) uint8 min-over-64-variant-pairs
+   Hamming matrix, chunked 256, `np.bitwise_count`) + `brute_clusters` (union-find over
+   **same-class** pairs only) + `cross_class_mask` (images within `near_dist` of a different-class
+   image); `leak_scan` now takes `D` directly (no re-hash, no banding); cross-class diagnostics
+   rewritten as a `source:class <-> source:class` pair table from `cross_mask` (keeps the
+   `"check the source_alias mapping"` flag).
+4. **Cell 6:** cross-class near-duplicates moved val/test → train (unreliable labels, never scored);
+   leak scan call updated to `leak_scan(D, man, tight=TIGHT)`.
+5. **Cell 15:** `report(cm, title, classes=None)` generalized (k = len(classes), default CLASSES).
+6. **Cell 16.5 (new):** source-held-out eval — preprocess like Cell 17 (0-255 float, SIZE resize),
+   `model.predict`, restrict to shared classes, `report` with classes, bootstrap 95% CI on macro-F1,
+   abstain at `abstain_threshold` (coverage + acc + macro-F1 on covered), per-source macro-F1 on
+   both held-out and in-source test, writes `source_held_out.csv`.
+7. **Cell 17:** abstain line added to field stress test output.
+8. **verify.py:** 23 cells / 22 boundaries / 22 code cells; Phase 3 markers for Cells 1/4/5/6/16.5/17.
+9. **`agri/test_phase3_dedupe.py`** (user-approved): AST-extracts the SHIPPED `d4_dist_matrix`,
+   `brute_clusters`, `cross_class_mask`, `leak_scan`; 16 checks — identity/symmetry/chunking,
+   D4-min over variant orbits (0 and 1-bit cases), same-class-only merging, cross-class flagging,
+   leak detection — ALL PASS.
+
+**Validation (all real, pasted in session):**
+- `split_cells.py` round-trip + `verify.py` → ALL PASS, exit 0 (23 cells).
+- `python -B test_phase3_dedupe.py` → ALL PASS, exit 0.
+- Grep: no leftover `clusters_at`/`_canon_key`/`bands`/`leak_scan(man, keys` references.
+- AST name check: every Cell 16.5 dependency (`confusion`, `report`, `te`, `yte`, `yte_pred`,
+  `SIZE`, `Image`, `OUT`, `CFG`, `CLASSES`, `NC`, `model`, `man_held`) is defined in the source.
+
+**Verification limits:** same as Phases 1–2 — local TF 2.21 ≠ Kaggle TF 2.20. The Phase 3
+acceptance gate is a user-pasted Kaggle smoke run showing the new Cell 5 dedupe output, the
+Cell 6 cross-class move, and the Cell 16.5 held-out eval.
+
 ## Headline metric (the number that matters)
 Source-held-out: train on `anshul6` + `indo3`, test on `dedeikh` across the 5 shared classes
 (`Sheath_Blight` has no second source → excluded). In-source test F1 is secondary and expected
-to be much higher. Built in Phase 3.
+to be much higher. **Built in Phase 3** (Cell 16.5, commit `ab04f7d`).

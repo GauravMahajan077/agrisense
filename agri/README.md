@@ -18,7 +18,7 @@ For actual pasting, use the generated per-cell files — one file per cell means
 
 ```
 agri/
-  agrisense_kaggle.py    <- source of truth, 22 cells
+  agrisense_kaggle.py    <- source of truth, 23 cells
   split_cells.py         <- run this after any edit to refresh cells/
   cells/
     README.md            <- paste order table
@@ -269,17 +269,20 @@ Three things had to be right, and the first version got all three wrong:
 
 **1. The hash must be dihedral-aware.** pHash is *not* flip- or rotation-invariant, and
 `Rice_Leaf_AUG` is exactly flips and rotations — so a plain pHash does **not** cluster the
-siblings it was built to cluster. Cell 5 hashes all 8 dihedral (D4) variants and uses the
-minimum as a canonical key, so a rotated or mirrored copy produces the same key.
+siblings it was built to cluster. Cell 5 hashes all 8 D4 variants per image and builds a
+brute-force pairwise distance matrix, taking the **min over the 8×8 variant pairs** — strictly
+more information than a single canonical key, and complete by construction (no banding to get
+wrong).
 
 **2. Duplicates must be kept.** The first version called `drop_duplicates("cluster")`, which
 left one image per cluster — every cluster a singleton, which made the "grouped split" and its
 leak assert **vacuous**: the assert could never fail. Cell 5 now keeps every image and tags it
 with a cluster id; Cell 6 splits on clusters. That is what the assert is supposed to mean.
 
-**3. LSH must be complete for the threshold used.** 4 bands x 16 bits only guarantees a
-candidate pair when Hamming distance <= 3, so a threshold of 6 silently missed a third of them.
-Cell 5 uses 8 bands x 8 bits, which is complete for distance <= 7.
+**3. The merge must be complete for the threshold used.** The old LSH banding only guaranteed
+a candidate pair when Hamming distance <= 3, so a threshold of 6 silently missed a third of
+them. Cell 5 now computes the full pairwise matrix with `np.bitwise_count` (chunked so the
+working set stays small) — complete for every threshold by construction.
 
 Cell 5 also prints the diagnostics that tell you whether grouping behaved: number of clusters,
 how many are multi-member, the **largest cluster size**, and how many clusters **span more than
@@ -293,36 +296,41 @@ oversized clusters, so the largest-cluster figure matters — if it is in the hu
 clusters: 5114  |  multi-member: 660  |  images inside multi-member clusters: 2163 (33%)
 images folded into an existing cluster: 1503 (23% of the manifest)
 largest cluster: 62 images  |  median 1
-clusters spanning >1 class: 35        clusters spanning >1 source: 3
-images inside cross-class clusters: 388 (5.9%) across 35 clusters
+clusters spanning >1 source: 3
+cross-class near-duplicates: 388 images (5.9%) — excluded from val/test in Cell 6
 ```
+
+(The 388/5.9% figure is the old run's cluster-based measure. The current code reports
+cross-class collisions per-image from `cross_class_mask` — images within `near_dist` of a
+different-class image — so the exact number on a fresh run will be close but not identical.)
 
 **Largest cluster 62, not hundreds** — no single-linkage chaining, so `near_dist = 4` stays.
 33% of images sit in multi-member clusters, which is `anshul6`'s pre-augmentation, and is
 exactly what the grouped split exists to contain.
 
 **Only 3 clusters span more than one source.** The three datasets are essentially disjoint, so
-`anshul6`'s augmentation did *not* leak into `dedeikh`'s images. That also means the 35
-cross-class clusters are almost all *within* a single source — source-internal label noise, not
-dataset overlap.
+`anshul6`'s augmentation did *not* leak into `dedeikh`'s images.
+
+**Cross-class collisions are label noise, not clusters.** Merging is same-class only — a
+cross-class near-duplicate is at least one mislabelled image, and folding it into a cluster
+would bake the contradiction in. Cell 5 flags them separately (`cross_class_mask`) and Cell 6
+moves them out of val/test into train, so they are never scored. 388 images (5.9%) is inherent
+to scraped data.
 
 **`dedeikh` is the noisy source**: 55 of the 66 colliding pairs are `dedeikh:X <-> dedeikh:Y`,
 concentrated in the three confusable spot diseases (`Healthy`/`Leaf_Blast` 14,
 `Brown_Spot`/`Leaf_Blast` 13, `Brown_Spot`/`Healthy` 11). Its `Healthy` and `Brown_Spot` classes
-in particular look like scraped sets with some mislabelling.
-
-Do not hand-fix these. The grouped split assigns each cluster to one split by majority label,
-so the minority images in a mixed cluster are simply a little label noise — the same noise a
-hand would introduce, only worse. 388 images (5.9%) is inherent to scraped data.
+in particular look like scraped sets with some mislabelling. This is exactly why it is the
+source-held-out test set (below).
 
 ### The cross-class pair table doubles as the `blight` alias check
 
-Cell 5 breaks cross-class clusters down by `(source, class)` pair. This is the empirical test of
-`CFG["source_alias"]`: had indo3's `blight` folder really been Leaf Blast, those 80 images would
-have clustered with Leaf_Blast images and `indo3:Bacterial_Leaf_Blight` would have appeared in
-that table. It does not appear at all — zero collisions for that class, while `indo3:Leaf_Blast`
-collides 6 times. Absence of contradiction, plus the folder-structure argument, is as much as
-this dataset can prove.
+Cell 5 breaks cross-class collisions down by `(source, class)` pair. This is the empirical test
+of `CFG["source_alias"]`: had indo3's `blight` folder really been Leaf Blast, those 80 images
+would have been near-duplicates of Leaf_Blast images and `indo3:Bacterial_Leaf_Blight` would
+have appeared in that table. It does not appear at all — zero collisions for that class, while
+`indo3:Leaf_Blast` collides 6 times. Absence of contradiction, plus the folder-structure
+argument, is as much as this dataset can prove.
 
 ### The leak assert is structural — read the scan instead
 
@@ -330,12 +338,12 @@ Cell 6's cluster-overlap assert **cannot fail**: the split is assigned per clust
 is impossible by construction. Treating it as a safety net is a mistake, and the pipeline says
 so in its own output.
 
-The check that *can* fail is the cross-split near-duplicate scan. Cell 5 merges near-duplicates
-at Hamming <= 4; images that are visually near-identical but pHash-different (re-cropped,
-re-encoded, rotated off-grid) never get merged and **can** straddle train and val/test. Cell 6
-re-scans the canonical keys at Hamming <= 7 — one step tighter than the merge, and complete
-with the same 8x8-bit banding — and reports any pair that ended up in different splits. It
-costs no re-hashing (~0.3 s for 6617 keys) because the keys already exist.
+The check that *can* fail is the cross-split near-duplicate scan. Cell 5 merges same-class
+near-duplicates at Hamming <= 4; images that are visually near-identical but pHash-different
+(re-cropped, re-encoded, rotated off-grid) never get merged and **can** straddle train and
+val/test. Cell 6 re-scans the brute-force D4 distance matrix at Hamming <= 7 — one step tighter
+than the merge — and reports any pair that ended up in different splits. It costs no re-hashing
+because the matrix already exists.
 
 ### The split was not stratified, and the seed did nothing
 
@@ -396,14 +404,32 @@ Every example is the **same class in two singleton clusters** — genuine near-t
 or re-encoded) that Hamming <= 4 missed. All 164 in singleton clusters, so the defect is the
 threshold, not the banding.
 
-The fix is to merge at the threshold the scan uses. `dedupe.near_dist: 7` is complete for this
-banding, so it drives the scan to zero by construction. The cost is over-merging: largest
-cluster was 62 at `near_dist: 4`, and it will grow. Cell 5 prints the largest cluster and its
-composition precisely so that trade-off is visible rather than assumed. Drop to `6` or `5` if
-the largest cluster runs away — the scan will report how many leaks remain.
+The scan is deliberately one step tighter than the merge, so it reports the residual leaks the
+merge missed. If the count is large, raise `dedupe.near_dist` toward 7 — the cost is
+over-merging (largest cluster grows), and Cell 5 prints the largest cluster and its composition
+precisely so that trade-off is visible rather than assumed. Drop back to `4` or `3` if the
+largest cluster runs away.
 
-Leak counts are de-duplicated across shared bands. A pair within 7 bits shares up to 7
-byte-bands, so without that the counts inflate about 7x.
+### Source-held-out eval — the headline metric
+
+In-source val/test (Cells 15–16) is secondary. The number that matters is **source-held-out**:
+train on `anshul6` + `indo3`, test on `dedeikh` across the 5 shared classes. `Sheath_Blight` is
+single-source in `anshul6`, so it stays in training but is excluded from the held-out eval (no
+held-out images exist for it).
+
+`CFG["held_out_source"] = "dedeikh"` routes that source out of training in Cell 4 — it never
+touches train/val/test, the dedupe, or the class weights. Cell 16.5 then evaluates the trained
+model on it:
+
+- **macro-F1 over the 5 shared classes**, with a **bootstrap 95% CI** (`bootstrap_iters`).
+- **Abstain rule**: predictions below `abstain_threshold` confidence are skipped; coverage and
+  accuracy/macro-F1 on the covered subset are reported. A farmer-facing tool should abstain
+  rather than guess.
+- **Per-source macro-F1** on both the held-out set and the in-source test, so you can see which
+  source the model generalises to worst.
+
+`dedeikh` is the noisy source (55 of 66 colliding pairs), so this is the honest number — expect
+it to be well below the in-source test. That gap is the real-world performance estimate.
 
 
 ---
@@ -499,10 +525,11 @@ Cell numbers below match the filenames in `cells/`, so the table and the files l
 | 7–8 | `08_cell_7_*.py`, `09_cell_8_*.py` | Confirm no class was dropped and weights look sane. |
 | 9–14 | `10_cell_9_*.py` … `15_cell_14_train.py` | Train. Watch the `backbone N/M layers trainable` line — it must be non-zero in B and C. |
 | 15–16 | `16_cell_15_*.py`, `17_cell_16_*.py` | Read `WORST-CLASS RECALL` and the val→test `GAP`. |
-| 17 | `18_cell_17_crawler_quarantined.py` | Field stress test. |
-| 18–19 | `19_cell_18_export.py`, `20_cell_19_*.py` | Export, **check the TFLite parity number**, download `agrisense_bundle.zip`. |
+| 16.5 | `18_cell_16_5_source_held_out_eval_headline_metric.py` | **The headline number.** Read the source-held-out macro-F1, its bootstrap CI, and the abstain coverage. |
+| 17 | `19_cell_17_crawler_quarantined.py` | Field stress test. |
+| 18–19 | `20_cell_18_export.py`, `21_cell_19_*.py` | Export, **check the TFLite parity number**, download `agrisense_bundle.zip`. |
 
-Stop-and-read checkpoints are cells **4, 5 and 15**. Cells 0–9 never need a GPU.
+Stop-and-read checkpoints are cells **4, 5, 15 and 16.5**. Cells 0–9 never need a GPU.
 
 **Smoke mode:** set `CFG["smoke"] = True` for a fast sanity run — 40 images/class, 1
 epoch/stage, no crawl, no export/bundle. Run it before any full run; it exercises every cell
@@ -520,6 +547,9 @@ Version` and attach the Output.
 | `UNMAPPED` in Cell 4 | Add to `CFG["alias"]`. Do not proceed on a guessed mapping. |
 | `largest cluster` in the hundreds (Cell 5) | Single-linkage chaining. Set `dedupe.near_dist: 0`. |
 | `clusters spanning >1 class` (Cell 5) | Label noise in the source data, not a code bug. |
+| `cross-class near-duplicates` (Cell 5) | Label noise. Moved to train in Cell 6, never scored. |
+| `SOURCE-HELD-OUT macro-F1` ≪ in-source test (Cell 16.5) | Expected and the point. The gap is the real-world estimate. |
+| `abstain` coverage low (Cell 16.5/17) | Model is unsure on field images. Lower `abstain_threshold` or collect more data. |
 | `every cluster is a singleton` (Cell 6) | Grouping was inert, so the leak assert proves nothing. |
 | `DROPPED` in Cell 7 | Class could not reach 120 train images. Add a source or lower `min_class`. |
 | `backbone 0/M` in stage B or C | Unfreezing regressed. The Cell 14 assert should have fired. |
@@ -534,9 +564,10 @@ Version` and attach the Output.
 ## 10. Two honest caveats
 
 1. **Everything except the Cell 17 stress test is lab-ish imagery.** Even after dedupe, all
-   four sources are mostly controlled-background or scraped stock photos. Your test number will
-   be optimistic for a real field. Only a held-out set of real farm photos fixes that, and no
-   amount of class weighting substitutes for it.
+   four sources are mostly controlled-background or scraped stock photos. The source-held-out
+   eval (Cell 16.5) is the honest in-dataset estimate — training on `anshul6`+`indo3` and
+   testing on `dedeikh` — but even that is not a real field. Only a held-out set of real farm
+   photos fixes that, and no amount of class weighting substitutes for it.
 2. **Licensing.** `shayanriyaz` is **CC0** — the only clean one. The other three are
    "Unknown". Fine for a student project; check before distributing anything commercially.
 
