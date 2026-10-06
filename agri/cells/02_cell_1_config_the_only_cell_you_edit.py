@@ -112,15 +112,26 @@ CFG = {
     # ---------- split / dedupe ----------
     "split": {"train": 0.70, "val": 0.15, "test": 0.15},
     # pHash is not flip/rotate invariant, so plain pHash misses exactly the `Rice_Leaf_AUG`
-    # siblings we need to group. dihedral=True hashes the 8 D4 variants and takes the min.
-    # near_dist is the single merge threshold (Hamming <= near_dist on the D4-min key).
-    "dedupe": {"enable": True, "dihedral": True, "near_dist": 4, "bands": 8},
+    # siblings we need to group. dihedral=True hashes all 8 D4 variants per image; the
+    # distance between two images is the MIN over the 8x8 variant pairs (brute-force numpy).
+    # near_dist is the single merge threshold, and ONLY same-class pairs merge (cross-class
+    # near-duplicates are label noise -> excluded from val/test in Cell 6).
+    "dedupe": {"enable": True, "dihedral": True, "near_dist": 4},
     "min_class": 120,   # MINIMUM TRAIN IMAGES, enforced AFTER the split (see Cell 7)
 
     # ---------- imbalance ----------
     # class_weight only. effective/oversample were removed on purpose (audit): class_weight
     # is the one that worked, and the others added config surface without a measured win.
     "imbalance": {"mode": "class_weight"},
+
+    # ---------- honest evaluation (Phase 3) ----------
+    # The headline metric is source-held-out: train on anshul6+indo3, test on dedeikh across
+    # the 5 shared classes (Sheath_Blight is single-source in anshul6, so it stays in training
+    # but is excluded from the held-out eval). dedeikh is the noisy source (README section 6),
+    # so this is the honest number. Set to None to disable and train on every source.
+    "held_out_source": "dedeikh",
+    "abstain_threshold": 0.5,   # held-out/field eval: skip predictions below this confidence
+    "bootstrap_iters": 2000,    # bootstrap CI for the headline macro-F1
 
     # ---------- augmentation (CPU, after preload -> never baked into exports) ----------
     # Applied in 0..1, matching tf.image.adjust_* expectations.

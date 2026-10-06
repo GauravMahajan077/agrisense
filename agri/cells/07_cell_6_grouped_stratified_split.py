@@ -1,10 +1,22 @@
 # CELL 6 — grouped stratified split
-# `grouped_split`, `leak_scan` and `clusters_at` are defined in CELL 5, so this cell uses the
-# exact same splitter. Do not re-define them here: a second copy is how the two halves drift
-# apart.
+# `grouped_split`, `leak_scan` and the brute-force dedupe helpers are defined in CELL 5, so
+# this cell uses the exact same implementations. Do not re-define them here: a second copy is
+# how the two halves drift apart.
 
 sp = CFG["split"]
 man, got = grouped_split(man, sp, SEED)          # defined in Cell 5, shared with this cell
+
+# Cross-class near-duplicates carry unreliable labels (at least one of the pair is mislabelled),
+# so they must not be scored. Keep them in TRAIN (the model averages the noise) but move them
+# out of val/test. This is the audit's "cross-class dropped from val/test".
+if cross_mask is not None:
+    moved = cross_mask & (man["split"] != "train")
+    n_moved = int(moved.sum())
+    man.loc[moved, "split"] = "train"
+    got = {k: int((man["split"] == k).sum()) for k in sp}
+    print(f"cross-class near-duplicates: {int(cross_mask.sum())} images; "
+          f"{n_moved} moved from val/test to train (unreliable labels)")
+
 print("split sizes: " + ", ".join(f"{k}={int(got[k])}" for k in sp)
       + f"  (target {int(sp['train']*len(man))}/{int(sp['val']*len(man))}/{int(sp['test']*len(man))})")
 tab = man.groupby(["class", "split"]).size().unstack(fill_value=0).reindex(columns=list(sp))
@@ -51,17 +63,15 @@ print("        overlap is impossible by construction - that assert cannot fail a
 print("        nothing on its own. The scan below is the one that can actually fail.")
 
 # ---- the leakage check that can actually fail ----
-# Cell 5 merged near-duplicates at dedupe.near_dist on the D4-min pHash. Images that are
-# visually near-identical but pHash-different (re-cropped, re-encoded, rotated off-grid) never
-# got merged, so they CAN straddle train and val/test. Scan for exactly that at a deliberately
-# TIGHTER threshold. Reuses the canonical keys, so there is no re-hashing cost.
-#
-# Completeness: a pair differing in <= T bits has at most T dirty bands, so with B bands it
-# shares >= B - T fully-matching bands. B=8 => complete (no false negatives) for T <= 7.
+# Cell 5 merged same-class near-duplicates at dedupe.near_dist on the D4-min pHash. Images
+# that are visually near-identical but pHash-different (re-cropped, re-encoded, rotated
+# off-grid) never got merged, so they CAN straddle train and val/test. Scan for exactly that
+# at a deliberately TIGHTER threshold. Reuses the brute-force D4 distance matrix, so there is
+# no re-hashing cost.
 TIGHT = 7
 _csize = man.groupby("cluster").size()
-if CFG["dedupe"]["enable"] and "keys" in globals() and len(keys) == len(man):
-    leaks = leak_scan(man, keys, tight=TIGHT, B=CFG["dedupe"]["bands"])
+if CFG["dedupe"]["enable"] and D is not None and D.shape[0] == len(man):
+    leaks = leak_scan(D, man, tight=TIGHT)
     n_pairs = sum(len(v) for v in leaks.values())
     print(f"\ncross-split near-duplicate scan (hamming <= {TIGHT}, tighter than the merge "
           f"threshold of {CFG['dedupe']['near_dist']}):")

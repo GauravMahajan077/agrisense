@@ -39,6 +39,20 @@ if CFG["smoke"]:
     print(f"SMOKE: manifest capped to {len(man)} images (40/class)")
 man.to_csv(OUT / "manifest_raw.csv", index=False)
 
+# source-held-out: route the held-out source OUT of training. It is evaluated separately in
+# Cell 16.5 (the headline metric) and never touches train/val/test or the dedupe.
+man_held = None
+if CFG.get("held_out_source"):
+    held_name = CFG["held_out_source"]
+    mh = man["source"] == held_name
+    if mh.any():
+        man_held = man[mh].reset_index(drop=True)
+        man = man[~mh].reset_index(drop=True)
+        print(f"source-held-out: {held_name} -> {len(man_held)} images held out; "
+              f"{len(man)} images remain for train/val/test")
+    else:
+        print(f"WARNING: held_out_source '{held_name}' not in the manifest — nothing held out")
+
 print(f"manifest: {len(man)} images from {man['source'].nunique()} source(s)\n")
 if unmapped:
     print("!! UNMAPPED folders — no label was invented. Add the folder to CFG['alias'], or")

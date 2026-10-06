@@ -308,15 +308,26 @@ CFG = {
     # ---------- split / dedupe ----------
     "split": {"train": 0.70, "val": 0.15, "test": 0.15},
     # pHash is not flip/rotate invariant, so plain pHash misses exactly the `Rice_Leaf_AUG`
-    # siblings we need to group. dihedral=True hashes the 8 D4 variants and takes the min.
-    # near_dist is the single merge threshold (Hamming <= near_dist on the D4-min key).
-    "dedupe": {"enable": True, "dihedral": True, "near_dist": 4, "bands": 8},
+    # siblings we need to group. dihedral=True hashes all 8 D4 variants per image; the
+    # distance between two images is the MIN over the 8x8 variant pairs (brute-force numpy).
+    # near_dist is the single merge threshold, and ONLY same-class pairs merge (cross-class
+    # near-duplicates are label noise -> excluded from val/test in Cell 6).
+    "dedupe": {"enable": True, "dihedral": True, "near_dist": 4},
     "min_class": 120,   # MINIMUM TRAIN IMAGES, enforced AFTER the split (see Cell 7)
 
     # ---------- imbalance ----------
     # class_weight only. effective/oversample were removed on purpose (audit): class_weight
     # is the one that worked, and the others added config surface without a measured win.
     "imbalance": {"mode": "class_weight"},
+
+    # ---------- honest evaluation (Phase 3) ----------
+    # The headline metric is source-held-out: train on anshul6+indo3, test on dedeikh across
+    # the 5 shared classes (Sheath_Blight is single-source in anshul6, so it stays in training
+    # but is excluded from the held-out eval). dedeikh is the noisy source (README section 6),
+    # so this is the honest number. Set to None to disable and train on every source.
+    "held_out_source": "dedeikh",
+    "abstain_threshold": 0.5,   # held-out/field eval: skip predictions below this confidence
+    "bootstrap_iters": 2000,    # bootstrap CI for the headline macro-F1
 
     # ---------- augmentation (CPU, after preload -> never baked into exports) ----------
     # Applied in 0..1, matching tf.image.adjust_* expectations.
@@ -704,6 +715,20 @@ if CFG["smoke"]:
     print(f"SMOKE: manifest capped to {len(man)} images (40/class)")
 man.to_csv(OUT / "manifest_raw.csv", index=False)
 
+# source-held-out: route the held-out source OUT of training. It is evaluated separately in
+# Cell 16.5 (the headline metric) and never touches train/val/test or the dedupe.
+man_held = None
+if CFG.get("held_out_source"):
+    held_name = CFG["held_out_source"]
+    mh = man["source"] == held_name
+    if mh.any():
+        man_held = man[mh].reset_index(drop=True)
+        man = man[~mh].reset_index(drop=True)
+        print(f"source-held-out: {held_name} -> {len(man_held)} images held out; "
+              f"{len(man)} images remain for train/val/test")
+    else:
+        print(f"WARNING: held_out_source '{held_name}' not in the manifest — nothing held out")
+
 print(f"manifest: {len(man)} images from {man['source'].nunique()} source(s)\n")
 if unmapped:
     print("!! UNMAPPED folders — no label was invented. Add the folder to CFG['alias'], or")
@@ -752,7 +777,9 @@ def _dihedral(im):
     for t in (Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270):
         yield fl.transpose(t)
 
-def _canon_key(p, dihedral=True, probe=256):
+def _d4_keys(p, probe=256):
+    # All 8 D4-variant pHashes, not the min: the brute-force merge below takes the MIN over
+    # the 8x8 variant pairs, which is strictly more information than a single canonical key.
     try:
         with Image.open(p) as im:
             im = im.convert("RGB")
@@ -762,51 +789,60 @@ def _canon_key(p, dihedral=True, probe=256):
                 try: im.draft("RGB", (probe, probe))
                 except Exception: pass
                 im = im.resize((probe, probe), Image.BILINEAR)
-            vs = [int(str(imagehash.phash(v)), 16) for v in (_dihedral(im) if dihedral else (im,))]
-            return f"{min(vs):016x}"
+            return tuple(int(str(imagehash.phash(v)), 16) for v in _dihedral(im))
     except Exception:
         return None
 
-def clusters_at(keys, nd, B=8):
-    """Per-row cluster id for a given near-duplicate threshold.
+def d4_dist_matrix(keys8, chunk=256):
+    """Full pairwise min-over-D4-variants Hamming matrix, (n, n) uint8.
 
-    Exact canonical-key matches are always clustered. `nd` additionally merges keys within
-    Hamming distance `nd`, using B bands of 8 bits — complete (no false negatives) for
-    nd <= B-1, because a pair differing in <= nd bits has at most nd dirty bands.
+    keys8: (n, 8) uint64. D[i, j] = min over a, b of popcount(keys8[i,a] ^ keys8[j,b]).
+    Chunked so the working set is (chunk, n) uint8, not (n, n) at once.
     """
-    f2i = defaultdict(list)
-    for i, k in enumerate(keys):
-        f2i[k].append(i)
-    parent = np.arange(len(f2i))
+    n = len(keys8)
+    D = np.zeros((n, n), np.uint8)
+    for q0 in range(0, n, chunk):
+        q = keys8[q0:q0 + chunk]
+        best = np.full((len(q), n), 255, np.uint8)
+        for a in range(8):
+            qa = q[:, a][:, None]
+            for b in range(8):
+                d = np.bitwise_count(np.bitwise_xor(qa, keys8[:, b][None, :]))
+                np.minimum(best, d, out=best)
+        D[q0:q0 + chunk] = best
+    return D
+
+def brute_clusters(D, nd, labels):
+    """Union-find over SAME-CLASS pairs with D <= nd. Returns (cluster_ids, n_merged).
+
+    Cross-class near-duplicates are NOT merged: they are label noise, and merging them would
+    fold contradictory labels into one cluster. They are flagged separately by cross_class_mask.
+    """
+    n = len(D)
+    parent = np.arange(n)
     def find(x):
         while parent[x] != x:
             parent[x] = parent[parent[x]]; x = parent[x]
         return x
-    key_list = list(f2i)
-    cid = np.empty(len(keys), np.int64)
-    for j, (_, idx) in enumerate(f2i.items()):
-        for i in idx:
-            cid[i] = j
-    if not nd:
-        return cid, 0                      # ALWAYS (ids, merged): both callers unpack 2 values.
-                                           # A bare cid raised "too many values to unpack" at
-                                           # nd=0 (the old sweep list contained 0).
-    buckets = defaultdict(list)
-    for j, k in enumerate(key_list):
-        v = int(k, 16)
-        for b in range(B):
-            buckets[(b, (v >> (8 * b)) & 0xFF)].append(j)
     merged = 0
-    for idx in buckets.values():
-        for a in range(len(idx) - 1):
-            for b in range(a + 1, len(idx)):
-                ka, kb = int(key_list[idx[a]], 16), int(key_list[idx[b]], 16)
-                if bin(ka ^ kb).count("1") <= nd:
-                    ra, rb = find(idx[a]), find(idx[b])
-                    if ra != rb:
-                        parent[rb] = ra; merged += 1
-    out = np.array([find(int(c)) for c in cid], np.int64)
+    for i in range(n):
+        js = np.nonzero((D[i] <= nd) & (labels == labels[i]))[0]
+        for j in js:
+            if j <= i:
+                continue
+            ri, rj = find(i), find(j)
+            if ri != rj:
+                parent[rj] = ri; merged += 1
+    out = np.array([find(i) for i in range(n)], np.int64)
     return out, merged
+
+def cross_class_mask(D, nd, labels):
+    """True for images within nd of a DIFFERENT-class image (ambiguous / mislabelled)."""
+    n = len(D)
+    mask = np.zeros(n, bool)
+    for i in range(n):
+        mask[i] = bool(((D[i] <= nd) & (labels != labels[i])).any())
+    return mask
 
 def grouped_split(man, sp, seed):
     """Stratified group split. Defined here, not in Cell 6, so Cell 5 and Cell 6 share one
@@ -843,62 +879,52 @@ def grouped_split(man, sp, seed):
     assert out["split"].notna().all(), "some cluster was never assigned a split"
     return out, got.sum(axis=0).to_dict()
 
-def leak_scan(man, keys, tight=7, B=8):
+def leak_scan(D, man, tight=7):
     """Count near-duplicate pairs that ended up in DIFFERENT splits.
 
-    Cell 5 merges at `near_dist`; this looks at `tight` (> near_dist) so it finds the twins the
-    merge missed. Reuses the canonical keys, so there is no re-hashing cost. A pair within
-    `tight` bits shares up to `tight` byte-bands, so pairs are de-duplicated — otherwise every
-    leak is reported once per shared band, inflating counts several-fold.
+    Uses the brute-force D4 distance matrix from Cell 5 (no re-hashing). A pair within `tight`
+    bits that straddles splits is a leak the merge missed.
     """
-    kk = [int(k, 16) for k in keys]
     sp_of = man["split"].to_numpy()
-    buckets = defaultdict(list)
-    for i, v in enumerate(kk):
-        for b in range(B):
-            buckets[(b, (v >> (8 * b)) & 0xFF)].append(i)
     leaks = defaultdict(list)
-    seen = set()
-    for idx in buckets.values():
-        for a in range(len(idx) - 1):
-            for b in range(a + 1, len(idx)):
-                i, j = idx[a], idx[b]
-                if sp_of[i] == sp_of[j]:
-                    continue
-                pair = (i, j) if i < j else (j, i)
-                if pair in seen:
-                    continue
-                if bin(kk[i] ^ kk[j]).count("1") <= tight:
-                    seen.add(pair)
-                    leaks[tuple(sorted((sp_of[i], sp_of[j])))].append((i, j))
+    for i in range(len(man)):
+        js = np.nonzero((D[i] <= tight) & (sp_of != sp_of[i]))[0]
+        for j in js:
+            if j <= i:
+                continue
+            leaks[tuple(sorted((sp_of[i], sp_of[j])))].append((i, j))
     return leaks
 
 if CFG["dedupe"]["enable"]:
-    # Hash the canonical keys fresh every run. The old on-disk cache was removed on purpose:
+    # Hash all 8 D4 variants fresh every run. The old on-disk cache was removed on purpose:
     # it could silently serve stale keys after a manifest change, and hashing is only ~84 s
     # for the full set (far less in smoke).
     t = time.time()
-    dia = CFG["dedupe"]["dihedral"]
     with ThreadPoolExecutor(CFG["workers"]) as ex:
-        keys = list(ex.map(lambda p: _canon_key(p, dia), man["path"].tolist()))
-    ok = np.array([k is not None for k in keys])
-    print(f"hashed {ok.sum()}/{len(ok)} in {time.time()-t:.0f}s "
-          f"(dihedral={dia}, {8 if dia else 1} variants/img)")
+        keys8 = list(ex.map(_d4_keys, man["path"].tolist()))
+    ok = np.array([k is not None for k in keys8])
+    print(f"hashed {ok.sum()}/{len(ok)} in {time.time()-t:.0f}s (8 D4 variants/img)")
     man = man[ok].reset_index(drop=True)
-    keys = [k for k, m in zip(keys, ok) if m]
+    keys8 = np.array([k for k, m in zip(keys8, ok) if m], np.uint64)
 
-    B = CFG["dedupe"]["bands"]
     nd = CFG["dedupe"]["near_dist"]
-    man["cluster"], _merged = clusters_at(keys, nd, B)
-    print(f"\nchosen near_dist {nd}: {_merged} key pairs merged within Hamming <= {nd} "
-          f"(B={B}, complete for nd <= {B - 1})")
+    labels = man["class"].astype("category").cat.codes.to_numpy(np.int32)
+    t = time.time()
+    D = d4_dist_matrix(keys8)
+    man["cluster"], _merged = brute_clusters(D, nd, labels)
+    cross_mask = cross_class_mask(D, nd, labels)
+    print(f"\nbrute-force D4 dedupe in {time.time()-t:.0f}s: {_merged} same-class key pairs merged "
+          f"within Hamming <= {nd} (min over 8 D4 variants)")
+    print(f"cross-class near-duplicates: {int(cross_mask.sum())} images "
+          f"({cross_mask.mean():.1%}) — excluded from val/test in Cell 6")
 else:
     man["cluster"] = np.arange(len(man))
+    D = None
+    cross_mask = None
 
 # ---- diagnostics that matter ----
 sizes = man.groupby("cluster").size()
 multi = sizes[sizes > 1]
-xclass = man.groupby("cluster")["class"].nunique()
 xsrc = man.groupby("cluster")["source"].nunique()
 n_before = len(man)
 print(f"\nclusters: {man['cluster'].nunique()}  |  multi-member: {len(multi)}  "
@@ -907,8 +933,8 @@ print(f"\nclusters: {man['cluster'].nunique()}  |  multi-member: {len(multi)}  "
 print(f"images folded into an existing cluster: {n_before - man['cluster'].nunique()} "
       f"({(n_before - man['cluster'].nunique())/n_before:.0%} of the manifest)")
 print(f"largest cluster: {int(sizes.max())} images  |  median {int(sizes.median())}")
-print(f"clusters spanning >1 class: {int((xclass>1).sum())}"
-      + ("   <- LABEL NOISE warning" if (xclass > 1).any() else ""))
+# Same-class merge means clusters can never span classes; cross-class collisions live in
+# cross_mask instead (reported below).
 print(f"clusters spanning >1 source: {int((xsrc>1).sum())}  "
       f"(cross-source copies = the datasets overlap)")
 
@@ -921,23 +947,21 @@ if sizes.max() > 10:
     print(f"largest cluster composition: {comp}   (sources: {srcs})")
 
 # WHERE the label noise comes from. This is also the empirical check on CFG["source_alias"]:
-# if indo3's `blight` folder were really Leaf Blast, its images would land in clusters with
-# Leaf_Blast images and that pair would show up here. Absence is not proof, but a cluster full
-# of indo3:blight <-> <something else> would be a red flag worth acting on.
-bad = xclass[xclass > 1].index
-xs = man[man["cluster"].isin(bad)]
-if len(xs):
+# if indo3's `blight` folder were really Leaf Blast, its images would be near-duplicates of
+# Leaf_Blast images and that pair would show up here. Absence is not proof, but a pile of
+# indo3:blight <-> <something else> pairs would be a red flag worth acting on.
+if cross_mask is not None and cross_mask.any():
     pairs = defaultdict(int)
-    for _cid, grp in xs.groupby("cluster"):
-        # NB: NOT itertuples — a column literally named "class" is not a valid Python
-        # identifier, so pandas renames it to "_1" and tuple indexing raises TypeError.
-        # That would land here, after 84 s of hashing. String concat sidesteps it entirely.
-        combos = sorted(set(grp["source"].astype(str) + ":" + grp["class"].astype(str)))
-        for a in range(len(combos)):
-            for b in range(a + 1, len(combos)):
-                pairs[(combos[a], combos[b])] += 1
-    print(f"\nimages inside cross-class clusters: {len(xs)} ({len(xs)/len(man):.1%}) "
-          f"across {len(bad)} clusters")
+    for i in np.nonzero(cross_mask)[0]:
+        js = np.nonzero((D[i] <= nd) & (labels != labels[i]))[0]
+        for j in js:
+            if j <= i:
+                continue
+            a = man["source"].iat[i] + ":" + man["class"].iat[i]
+            b = man["source"].iat[j] + ":" + man["class"].iat[j]
+            pairs[tuple(sorted((a, b)))] += 1
+    print(f"\ncross-class near-duplicates: {int(cross_mask.sum())} images "
+          f"({cross_mask.mean():.1%}) — excluded from val/test in Cell 6")
     print("which source:class pairs collide:")
     for (a, b), n in sorted(pairs.items(), key=lambda kv: -kv[1])[:15]:
         flag = ""
@@ -959,12 +983,24 @@ man.to_csv(OUT / "manifest_grouped.csv", index=False)
 
 # %%
 # CELL 6 — grouped stratified split
-# `grouped_split`, `leak_scan` and `clusters_at` are defined in CELL 5, so this cell uses the
-# exact same splitter. Do not re-define them here: a second copy is how the two halves drift
-# apart.
+# `grouped_split`, `leak_scan` and the brute-force dedupe helpers are defined in CELL 5, so
+# this cell uses the exact same implementations. Do not re-define them here: a second copy is
+# how the two halves drift apart.
 
 sp = CFG["split"]
 man, got = grouped_split(man, sp, SEED)          # defined in Cell 5, shared with this cell
+
+# Cross-class near-duplicates carry unreliable labels (at least one of the pair is mislabelled),
+# so they must not be scored. Keep them in TRAIN (the model averages the noise) but move them
+# out of val/test. This is the audit's "cross-class dropped from val/test".
+if cross_mask is not None:
+    moved = cross_mask & (man["split"] != "train")
+    n_moved = int(moved.sum())
+    man.loc[moved, "split"] = "train"
+    got = {k: int((man["split"] == k).sum()) for k in sp}
+    print(f"cross-class near-duplicates: {int(cross_mask.sum())} images; "
+          f"{n_moved} moved from val/test to train (unreliable labels)")
+
 print("split sizes: " + ", ".join(f"{k}={int(got[k])}" for k in sp)
       + f"  (target {int(sp['train']*len(man))}/{int(sp['val']*len(man))}/{int(sp['test']*len(man))})")
 tab = man.groupby(["class", "split"]).size().unstack(fill_value=0).reindex(columns=list(sp))
@@ -1011,17 +1047,15 @@ print("        overlap is impossible by construction - that assert cannot fail a
 print("        nothing on its own. The scan below is the one that can actually fail.")
 
 # ---- the leakage check that can actually fail ----
-# Cell 5 merged near-duplicates at dedupe.near_dist on the D4-min pHash. Images that are
-# visually near-identical but pHash-different (re-cropped, re-encoded, rotated off-grid) never
-# got merged, so they CAN straddle train and val/test. Scan for exactly that at a deliberately
-# TIGHTER threshold. Reuses the canonical keys, so there is no re-hashing cost.
-#
-# Completeness: a pair differing in <= T bits has at most T dirty bands, so with B bands it
-# shares >= B - T fully-matching bands. B=8 => complete (no false negatives) for T <= 7.
+# Cell 5 merged same-class near-duplicates at dedupe.near_dist on the D4-min pHash. Images
+# that are visually near-identical but pHash-different (re-cropped, re-encoded, rotated
+# off-grid) never got merged, so they CAN straddle train and val/test. Scan for exactly that
+# at a deliberately TIGHTER threshold. Reuses the brute-force D4 distance matrix, so there is
+# no re-hashing cost.
 TIGHT = 7
 _csize = man.groupby("cluster").size()
-if CFG["dedupe"]["enable"] and "keys" in globals() and len(keys) == len(man):
-    leaks = leak_scan(man, keys, tight=TIGHT, B=CFG["dedupe"]["bands"])
+if CFG["dedupe"]["enable"] and D is not None and D.shape[0] == len(man):
+    leaks = leak_scan(D, man, tight=TIGHT)
     n_pairs = sum(len(v) for v in leaks.values())
     print(f"\ncross-split near-duplicate scan (hamming <= {TIGHT}, tighter than the merge "
           f"threshold of {CFG['dedupe']['near_dist']}):")
@@ -1494,23 +1528,25 @@ def confusion(y_true, y_pred, k):
     for t, p in zip(y_true, y_pred): cm[int(t), int(p)] += 1
     return cm
 
-def report(cm, title):
+def report(cm, title, classes=None):
+    classes = classes or CLASSES
+    k = len(classes)
     tp = np.diag(cm).astype(float)
     prec = np.divide(tp, cm.sum(0), out=np.zeros_like(tp), where=cm.sum(0) > 0)
     rec  = np.divide(tp, cm.sum(1), out=np.zeros_like(tp), where=cm.sum(1) > 0)
     f1   = np.divide(2*prec*rec, prec+rec, out=np.zeros_like(tp), where=(prec+rec) > 0)
-    df = pd.DataFrame({"class": CLASSES, "support": cm.sum(1), "precision": prec.round(3),
+    df = pd.DataFrame({"class": classes, "support": cm.sum(1), "precision": prec.round(3),
                        "recall": rec.round(3), "f1": f1.round(3)}).sort_values("recall")
     print(f"\n=== {title} ===\n{df.to_string(index=False)}")
     print(f"MACRO-F1 {np.nanmean(f1):.4f} | ACC {np.trace(cm)/max(cm.sum(),1):.4f} | "
           f"WORST-CLASS RECALL {rec.min():.4f}")
-    fig, ax = plt.subplots(figsize=(0.62*NC+3, 0.62*NC+2.5))
+    fig, ax = plt.subplots(figsize=(0.62*k+3, 0.62*k+2.5))
     im = ax.imshow(cm/np.maximum(cm.sum(1, keepdims=True), 1), cmap="Blues", vmin=0, vmax=1)
-    ax.set_xticks(range(NC), CLASSES, rotation=40, ha="right", fontsize=8)
-    ax.set_yticks(range(NC), CLASSES, fontsize=8)
+    ax.set_xticks(range(k), classes, rotation=40, ha="right", fontsize=8)
+    ax.set_yticks(range(k), classes, fontsize=8)
     ax.set_xlabel("predicted"); ax.set_ylabel("true"); ax.set_title(f"{title} (row-normalised)")
-    for i in range(NC):
-        for j in range(NC):
+    for i in range(k):
+        for j in range(k):
             ax.text(j, i, cm[i,j], ha="center", va="center", fontsize=7,
                     color="white" if cm[i,j]/max(cm.sum(1)[i],1) > .5 else "black")
     plt.colorbar(im); plt.tight_layout(); plt.show()
@@ -1540,6 +1576,103 @@ print("  > +0.05 : split still leaky or too small to trust")
 print("  <  0.00 : val was pessimistic, test is the better number")
 pd.DataFrame(confusion(yte, yte_pred, NC), index=CLASSES,
              columns=CLASSES).to_csv(OUT / "test_confusion.csv")
+
+
+
+
+
+
+
+
+
+
+# %%
+# CELL 16.5 — source-held-out eval (HEADLINE METRIC)
+# The number that matters: train on anshul6+indo3, test on dedeikh across the 5 shared classes
+# (Sheath_Blight is single-source in anshul6, so it stays in training but is excluded here).
+# In-source val/test (Cells 15-16) is secondary and expected to be much higher.
+if man_held is not None and len(man_held):
+    shared = sorted(set(CLASSES) & set(man_held["class"].unique()))
+    print(f"\n=== SOURCE-HELD-OUT EVAL ===  held-out source: {CFG['held_out_source']}")
+    print(f"shared classes: {shared} ({len(shared)} of {len(CLASSES)})")
+    if len(shared) < 2:
+        print("  <2 shared classes — held-out eval undefined, skipping")
+    else:
+        # Preprocess exactly like the field stress test (Cell 17): 0-255 float, resize to SIZE.
+        # The parity check (Cell 19) proves the deployed graph agrees with `model` at these sizes.
+        keep = np.array([c in shared for c in man_held["class"]])
+        mh = man_held[keep].reset_index(drop=True)
+        t = time.time()
+        Xh = np.stack([np.asarray(Image.open(p).convert("RGB")
+                                   .resize((SIZE, SIZE), Image.BILINEAR), dtype=np.float32)
+                       for p in mh["path"]])
+        print(f"preprocessed {len(Xh)} held-out images in {time.time()-t:.0f}s")
+        Ph = model.predict(Xh, verbose=0)                       # (n, NC)
+        yh = np.array([CLASSES.index(c) for c in mh["class"]], np.int32)
+        shared_idx = {c: i for i, c in enumerate(shared)}
+        yh_c = np.array([shared_idx[CLASSES[y]] for y in yh], np.int32)
+        Ph_c = Ph[:, [CLASSES.index(c) for c in shared]]
+        pred_c = Ph_c.argmax(1)
+        cm = confusion(yh_c, pred_c, len(shared))
+        f1_ho, rec_ho = report(cm, f"SOURCE-HELD-OUT ({CFG['held_out_source']}, "
+                               f"{len(shared)} classes)", classes=shared)
+
+        # bootstrap 95% CI on macro-F1 (resample images with replacement)
+        def boot_macro_f1(y, p, k, iters=CFG["bootstrap_iters"], seed=0):
+            rng = np.random.RandomState(seed)
+            n = len(y); scores = np.empty(iters)
+            for it in range(iters):
+                idx = rng.randint(0, n, n)
+                cmb = confusion(y[idx], p[idx], k)
+                tp = np.diag(cmb).astype(float)
+                prec = np.divide(tp, cmb.sum(0), out=np.zeros_like(tp), where=cmb.sum(0) > 0)
+                recb = np.divide(tp, cmb.sum(1), out=np.zeros_like(tp), where=cmb.sum(1) > 0)
+                f1b = np.divide(2*prec*recb, prec+recb, out=np.zeros_like(tp), where=(prec+recb) > 0)
+                scores[it] = np.nanmean(f1b)
+            return np.percentile(scores, [2.5, 97.5])
+        lo, hi = boot_macro_f1(yh_c, pred_c, len(shared))
+        print(f"macro-F1 bootstrap 95% CI: [{lo:.4f}, {hi:.4f}]")
+
+        # abstain rule: skip predictions below the confidence threshold
+        thr = CFG["abstain_threshold"]
+        conf = Ph_c.max(1)
+        abstain = conf < thr
+        cov = (~abstain).mean()
+        if cov > 0:
+            cm_a = confusion(yh_c[~abstain], pred_c[~abstain], len(shared))
+            f1a, _ = report(cm_a, f"HELD-OUT with abstain@{thr}", classes=shared)
+            acc_a = np.trace(cm_a) / max(cm_a.sum(), 1)
+        else:
+            f1a, acc_a = np.nan, 0.0
+        print(f"abstain@{thr}: coverage {cov:.1%} | acc on covered {acc_a:.4f} | "
+              f"macro-F1 on covered {np.nanmean(f1a):.4f}")
+
+        # per-source macro-F1 (general: works if the held-out set spans several sources)
+        print("\nper-source macro-F1 (held-out set):")
+        for src, grp in mh.groupby("source"):
+            idx = np.nonzero(mh["source"].to_numpy() == src)[0]
+            cm_s = confusion(yh_c[idx], pred_c[idx], len(shared))
+            tp = np.diag(cm_s).astype(float)
+            prec = np.divide(tp, cm_s.sum(0), out=np.zeros_like(tp), where=cm_s.sum(0) > 0)
+            recb = np.divide(tp, cm_s.sum(1), out=np.zeros_like(tp), where=cm_s.sum(1) > 0)
+            f1s = np.divide(2*prec*recb, prec+recb, out=np.zeros_like(tp), where=(prec+recb) > 0)
+            print(f"  {src:12s} n={len(idx):5d}  macro-F1 {np.nanmean(f1s):.4f}")
+
+        # in-source test per-source macro-F1 (uses yte_pred/yte from Cell 16)
+        print("\nper-source macro-F1 (in-source TEST):")
+        for src, grp in te.groupby("source"):
+            idx = np.nonzero(te["source"].to_numpy() == src)[0]
+            cm_s = confusion(yte[idx], yte_pred[idx], NC)
+            tp = np.diag(cm_s).astype(float)
+            prec = np.divide(tp, cm_s.sum(0), out=np.zeros_like(tp), where=cm_s.sum(0) > 0)
+            recb = np.divide(tp, cm_s.sum(1), out=np.zeros_like(tp), where=cm_s.sum(1) > 0)
+            f1s = np.divide(2*prec*recb, prec+recb, out=np.zeros_like(tp), where=(prec+recb) > 0)
+            print(f"  {src:12s} n={len(idx):5d}  macro-F1 {np.nanmean(f1s):.4f}")
+
+        pd.DataFrame({"class": shared, "f1": f1_ho.round(4),
+                      "recall": rec_ho.round(4)}).to_csv(OUT / "source_held_out.csv", index=False)
+else:
+    print("source-held-out eval SKIPPED (CFG['held_out_source'] is None or empty)")
 
 
 
@@ -1654,6 +1787,12 @@ if CFG["crawl"]["enable"] and not CFG["smoke"]:
         print("\n=== FIELD STRESS TEST ===\n" + df.to_string(index=False))
         print(f"top-1 {float((df['true']==df['pred']).mean()):.1%} | "
               f"mean margin {df['margin'].mean():.3f}")
+        # abstain rule: same threshold as the held-out eval (Cell 16.5)
+        thr = CFG["abstain_threshold"]
+        cov = float((df["conf"] >= thr).mean())
+        acc_cov = (float((df.loc[df["conf"] >= thr, "true"] ==
+                          df.loc[df["conf"] >= thr, "pred"]).mean()) if cov > 0 else float("nan"))
+        print(f"abstain@{thr}: coverage {cov:.1%} | top-1 on covered {acc_cov:.1%}")
         df.to_csv(OUT / "field_stress_test.csv", index=False)
         print("Crawled labels are themselves noisy. Read the pattern, not the number.")
 

@@ -101,5 +101,11 @@ if CFG["crawl"]["enable"] and not CFG["smoke"]:
         print("\n=== FIELD STRESS TEST ===\n" + df.to_string(index=False))
         print(f"top-1 {float((df['true']==df['pred']).mean()):.1%} | "
               f"mean margin {df['margin'].mean():.3f}")
+        # abstain rule: same threshold as the held-out eval (Cell 16.5)
+        thr = CFG["abstain_threshold"]
+        cov = float((df["conf"] >= thr).mean())
+        acc_cov = (float((df.loc[df["conf"] >= thr, "true"] ==
+                          df.loc[df["conf"] >= thr, "pred"]).mean()) if cov > 0 else float("nan"))
+        print(f"abstain@{thr}: coverage {cov:.1%} | top-1 on covered {acc_cov:.1%}")
         df.to_csv(OUT / "field_stress_test.csv", index=False)
         print("Crawled labels are themselves noisy. Read the pattern, not the number.")
