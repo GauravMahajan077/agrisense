@@ -26,12 +26,16 @@ def _aug(im, y):
     h = tf.image.random_contrast(h, 1 - a["contrast"], 1 + a["contrast"])
     h = tf.image.random_saturation(h, 1 - a["sat"], 1 + a["sat"])
     h = tf.image.random_hue(h, a["hue"])
-    return tf.clip_by_value(h, 0., 1.) * 255., tf.one_hot(y, NC)
+    h = tf.clip_by_value(h, 0., 1.) * 255.
+    h.set_shape([SIZE, SIZE, 3])             # dynamic crop size must not leak unknown H/W
+    return h, tf.one_hot(y, NC)
 
 def _eval_t(im, y):
     # PRE (256) -> SIZE (224): the model input is fixed at SIZE, so eval MUST resize.
     # Also cast: resize on a uint8 tensor returns uint8, but the model wants float32.
-    return tf.cast(tf.image.resize(im, (SIZE, SIZE)), tf.float32), tf.one_hot(y, NC)
+    h = tf.cast(tf.image.resize(im, (SIZE, SIZE)), tf.float32)
+    h.set_shape([SIZE, SIZE, 3])
+    return h, tf.one_hot(y, NC)
 
 rng_ds = np.random.RandomState(SEED + 1)
 if USE_RAM:

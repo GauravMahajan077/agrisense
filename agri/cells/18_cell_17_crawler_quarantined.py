@@ -73,7 +73,11 @@ if CFG["crawl"]["enable"] and CFG["crawl"]["role"] == "stress_test":
     rows = []
     for p in sorted(CR.rglob("*.jpg")):
         with Image.open(p) as im:
-            x = np.asarray(im.convert("RGB").resize((SIZE, SIZE), np.float32)[None] / 255.)
+            # 0-255 floats: EfficientNet preprocesses internally, so no /255 here. PIL resize
+            # takes a Resampling enum (np.float32 raises "Unknown resampling filter"), and a
+            # PIL Image is not subscriptable — np.asarray must come before [None].
+            x = np.asarray(im.convert("RGB").resize((SIZE, SIZE), Image.BILINEAR),
+                           dtype=np.float32)[None]
         pr = model.predict(x, verbose=0)[0]
         s = np.sort(pr)
         rows.append({"true": p.parent.name, "pred": CLASSES[int(pr.argmax())],

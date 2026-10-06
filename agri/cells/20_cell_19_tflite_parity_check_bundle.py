@@ -12,9 +12,13 @@ if CFG["export"]["tflite"]:
     interp = tf.lite.Interpreter(model_content=tfl)
     inp_d = interp.get_input_details()[0]; out_d = interp.get_output_details()[0]
     interp.allocate_tensors()
-    # the exported graph has a dynamic H,W input; if the converter pinned it, use that
+    # Read the input shape FROM THE INTERPRETER instead of assuming it. A dynamic HxW input
+    # reports an allocated shape of [1,1,1,3]; the old fallback then resized every probe to
+    # 1x1, so the parity check compared nothing. The export input is fixed now, so anything
+    # other than PRE means something is wrong and the number below would be meaningless.
     shp = inp_d["shape"]
-    h, w = (int(shp[1]), int(shp[2])) if int(shp[1]) > 0 else (PRE, PRE)
+    h, w = int(shp[1]), int(shp[2])
+    assert (h, w) == (PRE, PRE), f"unexpected TFLite input shape {list(shp)} — parity invalid"
     rng_p = np.random.RandomState(0)
     agree, maxdiff, nprobe = 0, 0.0, min(16, len(yva))
     for i in rng_p.choice(len(yva), size=nprobe, replace=False):
@@ -22,9 +26,8 @@ if CFG["export"]["tflite"]:
                  else np.asarray(Image.open(va["path"].iloc[i]).convert("RGB")
                                  .resize((PRE, PRE), Image.BILINEAR))[None])
         probe = probe.astype(np.float32)
-        if (h, w) != (PRE, PRE):
-            probe = tf.image.resize(tf.convert_to_tensor(probe), (h, w)).numpy()
-        k_out = model.predict(probe, verbose=0)[0]
+        k_out = clean.predict(probe, verbose=0)[0]   # `clean`, NOT `model`: model is fixed at
+        # SIZE (224) and raises on a 256px probe; clean takes (1, PRE, PRE, 3) like tflite.
         interp.set_tensor(inp_d["index"], probe.astype(inp_d["dtype"]))
         interp.invoke()
         t_out = interp.get_tensor(out_d["index"])[0]

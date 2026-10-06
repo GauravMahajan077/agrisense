@@ -1,9 +1,10 @@
 # CELL 15 — validation report
 def predict_idx(ds, n):
-    out = []
-    for b in ds:
-        out.append(np.asarray(model.predict(b, verbose=0)).argmax(1))
-    return np.concatenate(out) if out else np.zeros(0, int)
+    # One predict() over the dataset, not one per batch: Keras 3 takes a tf.data.Dataset
+    # directly, and the length assert turns a silently short/long result into a hard error.
+    p = np.asarray(model.predict(ds, verbose=0)).argmax(1)
+    assert len(p) == n, (len(p), n)
+    return p
 
 def confusion(y_true, y_pred, k):
     cm = np.zeros((k, k), int)

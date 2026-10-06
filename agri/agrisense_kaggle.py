@@ -780,7 +780,9 @@ def clusters_at(keys, nd, B=8):
         for i in idx:
             cid[i] = j
     if not nd:
-        return cid
+        return cid, 0                      # ALWAYS (ids, merged): both callers unpack 2 values,
+                                           # and the sweep list contains 0. A bare cid raised
+                                           # "too many values to unpack" at nd=0.
     buckets = defaultdict(list)
     for j, k in enumerate(key_list):
         v = int(k, 16)
@@ -1274,12 +1276,16 @@ def _aug(im, y):
     h = tf.image.random_contrast(h, 1 - a["contrast"], 1 + a["contrast"])
     h = tf.image.random_saturation(h, 1 - a["sat"], 1 + a["sat"])
     h = tf.image.random_hue(h, a["hue"])
-    return tf.clip_by_value(h, 0., 1.) * 255., tf.one_hot(y, NC)
+    h = tf.clip_by_value(h, 0., 1.) * 255.
+    h.set_shape([SIZE, SIZE, 3])             # dynamic crop size must not leak unknown H/W
+    return h, tf.one_hot(y, NC)
 
 def _eval_t(im, y):
     # PRE (256) -> SIZE (224): the model input is fixed at SIZE, so eval MUST resize.
     # Also cast: resize on a uint8 tensor returns uint8, but the model wants float32.
-    return tf.cast(tf.image.resize(im, (SIZE, SIZE)), tf.float32), tf.one_hot(y, NC)
+    h = tf.cast(tf.image.resize(im, (SIZE, SIZE)), tf.float32)
+    h.set_shape([SIZE, SIZE, 3])
+    return h, tf.one_hot(y, NC)
 
 rng_ds = np.random.RandomState(SEED + 1)
 if USE_RAM:
@@ -1530,10 +1536,11 @@ print(f"loaded best.keras | outputs {model.output_shape[-1]} == declared {NC}  O
 # %%
 # CELL 15 — validation report
 def predict_idx(ds, n):
-    out = []
-    for b in ds:
-        out.append(np.asarray(model.predict(b, verbose=0)).argmax(1))
-    return np.concatenate(out) if out else np.zeros(0, int)
+    # One predict() over the dataset, not one per batch: Keras 3 takes a tf.data.Dataset
+    # directly, and the length assert turns a silently short/long result into a hard error.
+    p = np.asarray(model.predict(ds, verbose=0)).argmax(1)
+    assert len(p) == n, (len(p), n)
+    return p
 
 def confusion(y_true, y_pred, k):
     cm = np.zeros((k, k), int)
@@ -1672,7 +1679,11 @@ if CFG["crawl"]["enable"] and CFG["crawl"]["role"] == "stress_test":
     rows = []
     for p in sorted(CR.rglob("*.jpg")):
         with Image.open(p) as im:
-            x = np.asarray(im.convert("RGB").resize((SIZE, SIZE), np.float32)[None] / 255.)
+            # 0-255 floats: EfficientNet preprocesses internally, so no /255 here. PIL resize
+            # takes a Resampling enum (np.float32 raises "Unknown resampling filter"), and a
+            # PIL Image is not subscriptable — np.asarray must come before [None].
+            x = np.asarray(im.convert("RGB").resize((SIZE, SIZE), Image.BILINEAR),
+                           dtype=np.float32)[None]
         pr = model.predict(x, verbose=0)[0]
         s = np.sort(pr)
         rows.append({"true": p.parent.name, "pred": CLASSES[int(pr.argmax())],
@@ -1699,43 +1710,53 @@ if CFG["crawl"]["enable"] and CFG["crawl"]["role"] == "stress_test":
 # CELL 18 — export
 # PREPROCESSING CONTRACT (this is what the frontend must do):
 #   1. decode to RGB
-#   2. downscale the LONG EDGE to about 256 px using a HIGH-QUALITY filter
+#   2. resize to EXACTLY 256 x 256 using a HIGH-QUALITY filter
 #      (PIL LANCZOS, canvas drawImage with imageSmoothingQuality='high', or cv2.INTER_AREA)
 #   3. feed raw 0-255 floats, shape (1, 256, 256, 3), channels_last
-# The graph then does 256 -> 224 bilinear, which at that ratio is nearly 1:1 and aliases
-# negligibly. Do NOT feed a 4000px photo straight in: in-graph non-antialiased bilinear
-# would alias exactly the spot texture this model exists to read, and TFLite cannot do an
-# antialiased resize in-graph. Training used PIL BILINEAR, which DOES antialias, so the
-# step-2 requirement is what removes the train/serve skew.
-inp = tf.keras.Input((None, None, 3), dtype=tf.float32)
-x   = tf.keras.layers.Resizing(SIZE, SIZE, interpolation="bilinear")(inp)
-clean = tf.keras.Model(inp, model(x), name="agrisense_infer")
+# The input is FIXED at 256x256, so any other size is rejected outright instead of being
+# silently mis-shape-checked. The graph then does 256 -> 224 bilinear, which at that ratio is
+# nearly 1:1 and aliases negligibly. Do NOT feed a 4000px photo straight in: in-graph
+# non-antialiased bilinear would alias exactly the spot texture this model exists to read, and
+# TFLite cannot do an antialiased resize in-graph. Training used PIL BILINEAR, which DOES
+# antialias, so step 2 is what removes the train/serve skew.
+#
+# EXPORT MUST BE FLOAT32. Training runs mixed_float16 (CFG["amp"]) and TFLite cannot legalise
+# f16 Conv2D/MatMul: conversion dies with ConverterError "'tf.Conv2D' op is neither a custom
+# op nor a flex op". Wrapping `model` does NOT fix it — a layer's dtype policy is baked in at
+# build time and set_global_policy() afterwards never touches existing layers. So the export
+# graph is REBUILT under float32 and the trained weights are copied across.
+# NOTE the policy stays float32 until `clean` exists: `Resizing` is a NEW layer, so building
+# it while mixed_float16 is active gives it an f16 compute policy -> tf.ResizeBilinear on f16
+# -> ConverterError "'tf.ResizeBilinear' op is neither a custom op nor a flex op".
+_prev_policy = tf.keras.mixed_precision.global_policy()
+tf.keras.mixed_precision.set_global_policy("float32")
+export_base = build_model(NC)
+_w_tr, _w_ex = model.get_weights(), export_base.get_weights()
+assert [a.shape for a in _w_tr] == [a.shape for a in _w_ex], "rebuild changed the weight layout"
+export_base.set_weights(_w_tr)
+_w_chk = export_base.get_weights()
+assert all(np.array_equal(a, b) for a, b in zip(_w_tr, _w_chk)), "trained weights did not land"
 
-# The functional API REUSES layer objects, so `clean` already holds the trained weights.
-shared = any(l is model for l in clean.layers)
-if shared:
-    print(f"weights shared by construction ({model.name} is a layer of {clean.name})")
-else:
-    tgt = {l.name: l for l in clean.get_layer(model.name).layers}
-    bad = []
-    for l in model.layers:
-        if not l.get_weights(): continue
-        if l.name not in tgt: bad.append(l.name); continue
-        try: tgt[l.name].set_weights(l.get_weights())
-        except ValueError: bad.append(l.name)
-    print(f"name-matched transfer {len(model.layers)-len(bad)}/{len(model.layers)}")
-    if bad: print("MISMATCH:", bad)
+inp = tf.keras.Input((PRE, PRE, 3), batch_size=1, dtype=tf.float32)
+x   = tf.keras.layers.Resizing(SIZE, SIZE, interpolation="bilinear")(inp)
+clean = tf.keras.Model(inp, export_base(x), name="agrisense_infer")
+tf.keras.mixed_precision.set_global_policy(_prev_policy)   # restore only after clean exists
+print(f"export rebuilt as float32 from {model.name}: {len(_w_ex)} tensors copied and verified "
+      f"(max |delta| vs {model.name} = "
+      f"{max(float(np.abs(a - b).max()) for a, b in zip(_w_tr, _w_chk)):.1e})")
 clean.summary(line_length=110)
 clean.save(str(WORK / "agrisense_b0.keras"))
 
 contract = {
     "classes": CLASSES, "graph_input_size": SIZE, "recommended_input_size": PRE,
+    "input_shape": [1, PRE, PRE, 3],
     "channels_last": True, "value_range": [0, 255], "dtype": "float32",
     "steps": ["decode RGB",
-              f"downscale long edge to ~{PRE}px with a high-quality filter "
+              f"resize to exactly {PRE}x{PRE} with a high-quality filter "
               "(Lanczos / imageSmoothingQuality=high / INTER_AREA)",
-              "emit (1, H, W, 3) float32 in 0..255; graph resizes to 224"],
-    "do_not": ["nearest-neighbour resize", "skip the pre-downscale step"],
+              f"emit (1, {PRE}, {PRE}, 3) float32 in 0..255; graph resizes to {SIZE}"],
+    "do_not": ["nearest-neighbour resize", "feed any other HxW (the input is fixed)",
+               "divide by 255"],
     "val_macro_f1": round(float(np.nanmean(f1_va)), 4),
     "test_macro_f1": round(float(np.nanmean(f1_te)), 4),
     "worst_class_recall": round(float(rec_te.min()), 4),
@@ -1768,9 +1789,13 @@ if CFG["export"]["tflite"]:
     interp = tf.lite.Interpreter(model_content=tfl)
     inp_d = interp.get_input_details()[0]; out_d = interp.get_output_details()[0]
     interp.allocate_tensors()
-    # the exported graph has a dynamic H,W input; if the converter pinned it, use that
+    # Read the input shape FROM THE INTERPRETER instead of assuming it. A dynamic HxW input
+    # reports an allocated shape of [1,1,1,3]; the old fallback then resized every probe to
+    # 1x1, so the parity check compared nothing. The export input is fixed now, so anything
+    # other than PRE means something is wrong and the number below would be meaningless.
     shp = inp_d["shape"]
-    h, w = (int(shp[1]), int(shp[2])) if int(shp[1]) > 0 else (PRE, PRE)
+    h, w = int(shp[1]), int(shp[2])
+    assert (h, w) == (PRE, PRE), f"unexpected TFLite input shape {list(shp)} — parity invalid"
     rng_p = np.random.RandomState(0)
     agree, maxdiff, nprobe = 0, 0.0, min(16, len(yva))
     for i in rng_p.choice(len(yva), size=nprobe, replace=False):
@@ -1778,9 +1803,8 @@ if CFG["export"]["tflite"]:
                  else np.asarray(Image.open(va["path"].iloc[i]).convert("RGB")
                                  .resize((PRE, PRE), Image.BILINEAR))[None])
         probe = probe.astype(np.float32)
-        if (h, w) != (PRE, PRE):
-            probe = tf.image.resize(tf.convert_to_tensor(probe), (h, w)).numpy()
-        k_out = model.predict(probe, verbose=0)[0]
+        k_out = clean.predict(probe, verbose=0)[0]   # `clean`, NOT `model`: model is fixed at
+        # SIZE (224) and raises on a 256px probe; clean takes (1, PRE, PRE, 3) like tflite.
         interp.set_tensor(inp_d["index"], probe.astype(inp_d["dtype"]))
         interp.invoke()
         t_out = interp.get_tensor(out_d["index"])[0]

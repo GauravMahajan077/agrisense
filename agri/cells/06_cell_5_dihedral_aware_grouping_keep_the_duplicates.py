@@ -52,7 +52,9 @@ def clusters_at(keys, nd, B=8):
         for i in idx:
             cid[i] = j
     if not nd:
-        return cid
+        return cid, 0                      # ALWAYS (ids, merged): both callers unpack 2 values,
+                                           # and the sweep list contains 0. A bare cid raised
+                                           # "too many values to unpack" at nd=0.
     buckets = defaultdict(list)
     for j, k in enumerate(key_list):
         v = int(k, 16)
