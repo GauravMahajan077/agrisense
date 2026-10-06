@@ -45,22 +45,38 @@ Rice-leaf disease classification for Kaggle (TF 2.20 / Keras 3, 2x T4). Full rul
 | Phase | Status |
 |---|---|
 | **0** — `AGENTS.md` + `git init` + baseline commit | ✅ DONE (commit `f9c8a74`) |
-| **cleanup** — delete false-confidence tests, temp orphans | ✅ DONE (this commit) |
-| **1** — P0 crash fixes | ⬜ NEXT |
-| **2** — P1 simplify (remove sweep/LSH/cache/`effective`/`oversample`/finetune-crawl, `multi_gpu: False`, smoke mode, `PIPELINE_VERSION`, pin pip, UA email, crawl byte cap) | ⬜ |
+| **cleanup** — delete false-confidence tests, temp orphans | ✅ DONE (commit `a7d823c`) |
+| **1** — P0 crash fixes | ✅ DONE (commit `d9492b7`) |
+| **2** — P1 simplify (remove sweep/LSH/cache/`effective`/`oversample`/finetune-crawl, `multi_gpu: False`, smoke mode, `PIPELINE_VERSION`, pin pip, UA email, crawl byte cap) | ⬜ NEXT |
 | **3** — P2 honest eval (8-variant D4 brute force, same-class merge only, cross-class dropped from val/test, source-held-out split, macro-F1 per source + bootstrap CI, abstain rule) | ⬜ |
 | **4** — P3 field-test loader (eval only) | ⬜ |
 | restructure → `agrisense.py` + 3-cell notebook | ⬜ deferred until 0–4 pass |
 
-## Phase 1 — exact changes queued (in `agri/agrisense_kaggle.py`)
-1. `clusters_at`: `if not nd: return cid` → `return cid, 0` (lines 782–783).
+## Phase 1 — what was actually done (commit `d9492b7`)
+1. `clusters_at`: `if not nd: return cid` → `return cid, 0` (fixes `ValueError: too many values to unpack` at lines 905/924).
 2. Cell 15 `predict_idx`: predict on the whole dataset once + `assert len(p) == n`.
-3. Cell 17: `np.asarray(im.convert("RGB").resize((SIZE, SIZE), Image.BILINEAR))[None]` and **remove `/255.`**.
+3. Cell 17: `np.asarray(im.convert("RGB").resize((SIZE, SIZE), Image.BILINEAR))[None]`, **removed `/255.`**.
 4. Cell 10: `h.set_shape([SIZE, SIZE, 3])` guards at the end of `_aug` and `_eval_t`.
 5. Cell 18/19 export: rebuild `clean` under `float32` policy (weight transfer guarded by asserts),
    fixed `tf.keras.Input((PRE, PRE, 3), batch_size=1)`, parity reads the interpreter's real
    allocated shape, contract JSON updated to `(1, 256, 256, 3)`.
-Then: `python split_cells.py` → `python -B verify.py` (must exit 0) and re-run any checks.
+   **New finding during validation:** the `Resizing` layer must ALSO be built under the float32
+   policy — building it after restoring `mixed_float16` gives it an f16 compute policy →
+   `tf.ResizeBilinear` on f16 → `ConverterError` ("neither a custom op nor a flex op"). The
+   policy restore now happens only after `clean` exists.
+6. Cell 19 parity: `k_out = clean.predict(...)` (was `model.predict` → crashed on 256px probe),
+   and the interpreter's input shape is asserted to be exactly `(PRE, PRE)` instead of the old
+   silent `(1,1)` fallback.
+
+**Validation (all real, pasted in session):**
+- `split_cells.py` round-trip + `verify.py` → ALL PASS, exit 0.
+- AST-extracted shipped-source tests (no files created, cannot go stale like the deleted tests):
+  `clusters_at` unpacking/monotonicity, Cell 17 preprocess shape/dtype/0-255, `_aug`/`_eval_t`
+  static shapes, `predict_idx` length assert — ALL PASS.
+- Full Cell 18 + Cell 19 end-to-end on the REAL source (real `build_model` under `mixed_float16`,
+  real export, real TFLite conversion): every layer float32, TFLite input `[1,256,256,3]`,
+  **PARITY 100% at 256x256, max |delta prob| = 0.0000**, bundle written. ALL PASS, exit 0.
+
 **Verification limits:** local = TF 2.21 / Keras 3.13.2 / Python 3.13. Kaggle = TF 2.20.
 Local green ≠ Kaggle green. A Kaggle smoke run must be pasted before claiming Phase 1 works there.
 
