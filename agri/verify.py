@@ -98,10 +98,30 @@ if c17:
     t17 = c17.read_text(encoding="utf-8")
     check("cell 17 has abstain line", "abstain@" in t17)
 
+c18 = next((f for f in cells if "cell_18" in f.name), None)
+if c18:
+    t18 = c18.read_text(encoding="utf-8")
+    check("cell 18 contract ships abstain_threshold", "abstain_threshold" in t18)
+
 c2 = next((f for f in cells if "cell_2" in f.name), None)
 if c2:
     t2 = c2.read_text(encoding="utf-8")
     check("cell 2 has source_alias guard", "shadow" in t2)
+
+print("\n=== field-test loader ===")
+ft = pathlib.Path("field_test.py")
+check("field_test.py exists", ft.exists())
+if ft.exists():
+    try:
+        ast.parse(ft.read_text(encoding="utf-8"))
+        check("field_test.py parses", True)
+    except SyntaxError as e:
+        check("field_test.py parses", False, str(e))
+    tft = ft.read_text(encoding="utf-8")
+    check("loader never divides by 255", "/ 255" not in tft and "/255" not in tft)
+    check("loader uses LANCZOS resize", "LANCZOS" in tft)
+    check("loader reads the contract", "recommended_input_size" in tft)
+    check("loader has abstain", "abstain_threshold" in tft)
 
 print("\n=== README ===")
 rm = pathlib.Path("README.md").read_text(encoding="utf-8")

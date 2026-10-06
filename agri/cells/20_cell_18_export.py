@@ -53,6 +53,7 @@ if not CFG["smoke"]:
         "val_macro_f1": round(float(np.nanmean(f1_va)), 4),
         "test_macro_f1": round(float(np.nanmean(f1_te)), 4),
         "worst_class_recall": round(float(rec_te.min()), 4),
+        "abstain_threshold": CFG["abstain_threshold"],   # read by agri/field_test.py
     }
     (WORK / "class_names.json").write_text(json.dumps(contract, indent=2))
     print(f"\nDECLARED {NC} == OUTPUT {clean.output_shape[-1]}  "
