@@ -133,6 +133,10 @@ for roughly 1.7x throughput; two details it handles:
 - XLA is auto-disabled (`jit_compile` is skipped), because XLA plus `MirroredStrategy` has
   known friction on T4.
 
+`CFG["jit"] = False` (default). XLA is off by default even on a single GPU: `MacroF1` uses
+`tf.math.confusion_matrix`, a possible XLA compile failure, and at ~35 steps/epoch XLA
+compilation overhead is not worth it. Set it to `True` to try XLA on a single GPU.
+
 ### Stack note: Python 3.13 / TF 2.20 / Keras 3
 
 Kaggle currently serves this stack. It is stricter than TF 2.15 in ways that matter here, and
@@ -572,7 +576,7 @@ pipelines → macro_f1 → make_model → callbacks → train → val_report →
 dedupe/split report, the val report and the source-held-out eval — each stage prints its
 output in order.
 
-**Smoke mode:** set `CFG["smoke"] = True` for a fast sanity run — 40 images/class, 1
+**Smoke mode:** set `CFG["smoke"] = True` for a fast sanity run — 40 images/source/class, 1
 epoch/stage, no crawl, no export/bundle. Run it before any full run; it exercises every stage
 end-to-end in a few minutes.
 

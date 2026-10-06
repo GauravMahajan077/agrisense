@@ -90,7 +90,7 @@ Local green ≠ Kaggle green. A Kaggle smoke run must be pasted before claiming 
    `max_bytes: 5_000_000`.
 2. **Cell 2:** `_pip` now takes `(import_name, install_spec)` tuples; pins `imagehash==4.3.2`,
    `ddgs==9.16.0` (both verified to exist on PyPI).
-3. **Cell 4:** smoke caps manifest to 40 img/class (`man.groupby("class").head(40)`).
+3. **Cell 4:** smoke caps manifest to 40 img/source/class (`man.groupby(["source", "class"]).head(40)`).
 4. **Cell 5:** hash cache removed (fresh hash every run — no stale-key risk); sweep block removed;
    single `near_dist` merge via `clusters_at` (banded merge kept until Phase 3's brute force).
 5. **Cell 8:** `assert mode == "class_weight"`; plain `CategoricalCrossentropy` LOSS.
@@ -192,7 +192,7 @@ actual `agrisense_bundle.zip` from a Kaggle run — that needs the Phase 2/3 smo
    `PIPELINE_VERSION` and calls the stages in order. **No `__main__` pipeline block** (in a
    notebook `__name__ == "__main__"`, so a block there would fire on paste). Module-level
    `DEFAULT_CFG` (the notebook's CONFIG cell is the editable copy; verify.py AST-compares the
-   two). `PIPELINE_VERSION = "3.0.0"`.
+   two). `PIPELINE_VERSION = "3.1.0"`.
 2. **Behavior-preservation details:** `SaveBestF1.best` stays a CLASS attribute (one global
    best across stage callbacks); `BEST_PATH` and `BudgetStop`'s `t_train0`/`budget_min` became
    constructor args (no module globals); `imagehash`/`ddgs`/`requests` imported lazily at point
@@ -226,6 +226,53 @@ actual `agrisense_bundle.zip` from a Kaggle run — that needs the Phase 2/3 smo
 - One real bug caught during validation: `_d4_keys` referenced `imagehash` but the import was
   local to `dedupe()` → `NameError` in the worker thread. Fixed with a lazy import inside
   `_d4_keys`; the dead import in `dedupe()` was removed.
+
+## Phase 5.1 — audit fixes (PIPELINE_VERSION 3.1.0)
+
+**Trigger:** user-pasted code review found 4 real bugs + 1 hygiene issue. User's fix prompt
+(reproduce → fix in order, "No other changes") was the approval.
+
+**Reproduced first** (real output via temp script): (1) `min_class()` re-split wiped the
+cross-class move (5/5 in train → 3/5); (2) smoke cap `groupby("class").head(40)` ran before
+held-out routing → dedeikh dropped entirely, every class < `min_class` → "min_class OK" with 0
+classes, splits 0/0/0, crash later; (3) `SaveBestF1.best` is a class attribute → survived
+between runs, smoke score could block saving and `load_model` could load the smoke model;
+(4) `"jit": True` default → XLA on with single GPU, `MacroF1` uses `tf.math.confusion_matrix`
+(possible XLA compile failure); hygiene: contact email hardcoded in crawler UA.
+
+**Fixes in `agri/new/agrisense.py`:**
+1. `min_class()`: computes `mc = 10 if smoke else min_class`; captures the class-filter mask and
+   re-aligns `self.keys8`; re-applies the cross-class move after each `grouped_split`
+   (`xclass & split != "train"` → train); raises `SystemExit("min_class dropped every class…")`
+   on empty `CLASSES`.
+2. `manifest()`: smoke cap is per source+class (`groupby(["source", "class"]).head(40)`), so the
+   held-out source survives smoke.
+3. `dedupe()`: stores `self.keys8` (aligned with `self.man`) and `self.man["xclass"]` so later
+   stages can re-align/re-apply; else branch sets `keys8=None`, `xclass=False`.
+4. `train()`: first line resets `SaveBestF1.best = -1.0` (no bleed between runs in one kernel).
+5. `DEFAULT_CFG["jit"] = False` (XLA off by default; `MacroF1` + `confusion_matrix` XLA risk).
+6. `DEFAULT_CFG["crawl"]["contact"] = "gau.mah077@gmail.com"`; crawler UA reads it from CFG.
+7. `held_out()`: new held-out-vs-train D4 overlap report — hashes held-out images, min D4
+   distance to train keys, prints fraction within `near_dist` and within 7 bits, warns if >5%
+   near-duplicate (answers "does dedeikh overlap anshul6?").
+8. `PIPELINE_VERSION = "3.1.0"`; notebook CONFIG cell updated to AST-match (`jit` False,
+   `crawl.contact`).
+
+**Validation (all real, pasted in session):**
+- `python -B split_cells.py` → 4 cells regenerated (3.1.0).
+- `python -B verify.py` → ALL PASS, exit 0 (71 checks incl. 11 new Phase 5.1 checks).
+- `python -B test_phase3_dedupe.py` → ALL PASS, exit 0.
+- `python -B test_phase4_field_test.py` → ALL PASS, exit 0.
+- Fix verification script → all 6 fixes OK (cross-class 5/5 after min_class; dedeikh 240 imgs
+  after cap, 6 classes kept, splits 336/72/72; SystemExit on empty CLASSES; reset present;
+  jit False; contact in CFG; overlap report present).
+- Overlap logic e2e (real imagehash): 1px-shift near-dupe → min D4 6 (within tight 7), distinct
+  → 20. `imagehash==4.3.2` installed locally for the test.
+
+**Verification limits:** same as Phase 5 — local TF 2.21 ≠ Kaggle TF 2.20. The 3.1.0 acceptance
+gate is a user-pasted Kaggle smoke run (expect `PIPELINE_VERSION 3.1.0`, `SMOKE: manifest
+capped … (40/source/class)`, dedupe/split/min_class OK, 1 epoch/stage, `SMOKE: export/bundle
+skipped`), then the full run → read held-out macro-F1 + CI.
 
 **Verification limits:** same as Phases 1–4 — local TF 2.21 ≠ Kaggle TF 2.20. The Phase 5
 acceptance gate is a user-pasted Kaggle smoke run of the new 3-cell notebook (Cell 1 CONFIG →

@@ -98,7 +98,7 @@ if mod.exists():
         mtree = None
         check("module parses", False, str(e))
 
-    check("PIPELINE_VERSION is 3.0.0", 'PIPELINE_VERSION = "3.0.0"' in msrc)
+    check("PIPELINE_VERSION is 3.1.0", 'PIPELINE_VERSION = "3.1.0"' in msrc)
     check("DEFAULT_CFG present", find_assign(mtree, "DEFAULT_CFG") is not None if mtree else False)
 
     if mtree:
@@ -170,6 +170,28 @@ if mod.exists():
     check("DEFAULT_CFG has held_out_source", '"held_out_source"' in msrc)
     check("DEFAULT_CFG has abstain_threshold", '"abstain_threshold"' in msrc)
     check("DEFAULT_CFG has bootstrap_iters", '"bootstrap_iters"' in msrc)
+
+    # Phase 5.1 review fixes (reproduced before fixing, all four bugs + hygiene).
+    check("jit defaults to False (XLA off)", '"jit": False' in msrc)
+    check("crawl contact lives in CFG", '"contact"' in msrc and "gau.mah077@gmail.com" in msrc)
+    check("crawl UA reads contact from CFG",
+          "self.cfg['crawl']['contact']" in method_source(msrc, "Pipeline", "crawl"))
+    check("dedupe stores xclass mask on manifest",
+          'self.man["xclass"]' in method_source(msrc, "Pipeline", "dedupe"))
+    check("dedupe stores keys8 for overlap check",
+          "self.keys8" in method_source(msrc, "Pipeline", "dedupe"))
+    check("min_class re-applies cross-class move",
+          'self.man["xclass"]' in method_source(msrc, "Pipeline", "min_class"))
+    check("min_class guards empty CLASSES",
+          "min_class dropped every class" in method_source(msrc, "Pipeline", "min_class"))
+    check("min_class uses mc in smoke",
+          'mc = 10 if self.cfg["smoke"]' in method_source(msrc, "Pipeline", "min_class"))
+    check("manifest smoke cap is per source+class",
+          'groupby(["source", "class"]).head(40)' in method_source(msrc, "Pipeline", "manifest"))
+    check("train resets SaveBestF1.best",
+          "SaveBestF1.best = -1.0" in method_source(msrc, "Pipeline", "train"))
+    check("held_out has D4 overlap report",
+          "held-out vs train D4 overlap" in method_source(msrc, "Pipeline", "held_out"))
 
 print("\n=== notebook: agrisense_notebook.py ===")
 nb = pathlib.Path("agrisense_notebook.py")

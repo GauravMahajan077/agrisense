@@ -47,7 +47,7 @@ import tensorflow.keras.callbacks as KC     # KC, not K — K is used as a class
 
 # Bumped on every intentional pipeline change. Printed at every entry point (start, train,
 # export, bundle) so a stale paste is visible in the log instead of silently shipping.
-PIPELINE_VERSION = "3.0.0"
+PIPELINE_VERSION = "3.1.0"
 
 
 # =====================================================================================
@@ -65,7 +65,9 @@ DEFAULT_CFG = {
     "pre_size": 256,               # preload target; augmentation crops 256 -> 224
     "batch_size_per_replica": 64,  # global batch = this x num_replicas
     "amp": True,                   # mixed_float16
-    "jit": True,                   # XLA (auto-skipped when multi_gpu is on)
+    "jit": False,                  # XLA off by default: MacroF1 uses tf.math.confusion_matrix,
+                                   # a possible XLA compile failure, and at ~35 steps/epoch XLA
+                                   # saves almost nothing. True to try it on a single GPU.
     "multi_gpu": False,            # single GPU by default: MirroredStrategy adds friction
                                    # (XLA off, batch split) for no accuracy gain. True to try
                                    # both T4s anyway.
@@ -212,6 +214,7 @@ DEFAULT_CFG = {
         "max_bytes": 5_000_000,      # per-image download cap (a 20 MB photo is never useful)
         "sleep": 0.3,
         "max_seconds": 180,
+        "contact": "gau.mah077@gmail.com",   # crawler User-Agent contact (Wikimedia UA policy)
         "queries": {
             "Brown_Spot": ["rice leaf brown spot disease", "oryza sativa brown spot leaf"],
             "Leaf_Blast": ["rice leaf blast disease", "rice blast lesion leaf field"],
@@ -725,8 +728,10 @@ class Pipeline:
         if self.man.empty:
             raise SystemExit("manifest empty — CFG['alias'] does not match your folder names")
         if self.cfg["smoke"]:
-            self.man = self.man.groupby("class").head(40).reset_index(drop=True)
-            print(f"SMOKE: manifest capped to {len(self.man)} images (40/class)")
+            # Cap per SOURCE and class, not per class: a per-class cap fills up with the first
+            # source (anshul6) and silently drops the held-out source (dedeikh) before routing.
+            self.man = self.man.groupby(["source", "class"]).head(40).reset_index(drop=True)
+            print(f"SMOKE: manifest capped to {len(self.man)} images (40/source/class)")
         self.man.to_csv(self.OUT / "manifest_raw.csv", index=False)
 
         # source-held-out: route the held-out source OUT of training. It is evaluated separately
@@ -914,6 +919,7 @@ class Pipeline:
             print(f"hashed {ok.sum()}/{len(ok)} in {time.time()-t:.0f}s (8 D4 variants/img)")
             self.man = self.man[ok].reset_index(drop=True)
             keys8 = np.array([k for k, m in zip(keys8, ok) if m], np.uint64)
+            self.keys8 = keys8   # aligned with self.man; held_out() reuses it for the overlap check
 
             nd = self.cfg["dedupe"]["near_dist"]
             labels = self.man["class"].astype("category").cat.codes.to_numpy(np.int32)
@@ -921,6 +927,9 @@ class Pipeline:
             self.D = self.d4_dist_matrix(keys8)
             self.man["cluster"], _merged = self.brute_clusters(self.D, nd, labels)
             self.cross_mask = self.cross_class_mask(self.D, nd, labels)
+            # Persist the mask on the manifest: min_class() re-splits and must re-apply the
+            # cross-class move, and a bare self.cross_mask would go stale after the re-split.
+            self.man["xclass"] = self.cross_mask
             print(f"\nbrute-force D4 dedupe in {time.time()-t:.0f}s: {_merged} same-class key pairs "
                   f"merged within Hamming <= {nd} (min over 8 D4 variants)")
             print(f"cross-class near-duplicates: {int(self.cross_mask.sum())} images "
@@ -929,6 +938,8 @@ class Pipeline:
             self.man["cluster"] = np.arange(len(self.man))
             self.D = None
             self.cross_mask = None
+            self.keys8 = None
+            self.man["xclass"] = False
 
         # ---- diagnostics that matter ----
         sizes = self.man.groupby("cluster").size()
@@ -1094,16 +1105,28 @@ class Pipeline:
 
     def min_class(self):
         self.CLASSES = list(self.cfg["classes"])
+        # Smoke runs 40 img/source/class, so ~28 train images/class after the split. The real
+        # min_class (120) would drop every class in smoke; 10 is enough to keep the machinery
+        # honest without demanding a full dataset.
+        mc = 10 if self.cfg["smoke"] else self.cfg["min_class"]
         for attempt in range(4):
             keep = [c for c in self.CLASSES if c in set(self.man["class"])]
             gone = [c for c in self.CLASSES if c not in keep]
             if gone: print(f"dropped (no images at all): {gone}")
-            self.man = self.man[self.man["class"].isin(keep)]
+            mask = self.man["class"].isin(keep)
+            self.man = self.man[mask]
+            if self.keys8 is not None:
+                self.keys8 = self.keys8[mask.to_numpy()]   # keep aligned with the filtered man
             self.CLASSES, self.CIDX, self.NC = keep, {c: i for i, c in enumerate(keep)}, len(keep)
+            if not self.CLASSES:
+                raise SystemExit("min_class dropped every class — check CFG['classes'] vs your data")
             self.man, _ = self.grouped_split(self.man, self.sp, self.cfg["seed"])
-            bad = self.starved_classes(self.man, self.CLASSES, self.cfg["min_class"])
+            # grouped_split rebuilt the split column from scratch, which silently undoes the
+            # cross-class move from split(). Re-apply it: unreliable labels stay in TRAIN only.
+            self.man.loc[self.man["xclass"] & (self.man["split"] != "train"), "split"] = "train"
+            bad = self.starved_classes(self.man, self.CLASSES, mc)
             if not bad:
-                print(f"\nmin_class OK: every class has >= {self.cfg['min_class']} TRAIN images "
+                print(f"\nmin_class OK: every class has >= {mc} TRAIN images "
                       f"and appears in all {len(self.sp)} splits")
                 break
             print(f"\nattempt {attempt+1}: starving -> " + ", ".join(
@@ -1375,6 +1398,10 @@ class Pipeline:
 
     # ---- CELL 14 — train ----
     def train(self):
+        # `best` is a CLASS attribute (one global best across stage callbacks), so it survives
+        # between runs in the same kernel. A lucky smoke score would otherwise block saving and
+        # load_model would silently load the smoke model. Reset it per run.
+        SaveBestF1.best = -1.0
         self.T_TRAIN0 = time.time()
         cw = {i: float(self.CLS_W[i]) for i in range(self.NC)}   # class_weight only
 
@@ -1501,6 +1528,43 @@ class Pipeline:
                 # at these sizes.
                 keep = np.array([c in shared for c in self.man_held["class"]])
                 mh = self.man_held[keep].reset_index(drop=True)
+
+                # held-out vs train D4 overlap: the held-out source was removed BEFORE hashing,
+                # so we never learned whether it overlaps the train set. If more than a few % of
+                # held-out images are near-duplicates of train images, the held-out score is
+                # inflated. One-time check: min over the 8x8 D4 variant pairs, per held-out image.
+                if self.keys8 is not None and len(mh):
+                    tr_mask = (self.man["split"] == "train").to_numpy()
+                    tr_keys = self.keys8[tr_mask]
+                    if len(tr_keys):
+                        t = time.time()
+                        with ThreadPoolExecutor(self.cfg["workers"]) as ex:
+                            hk = list(ex.map(self._d4_keys, mh["path"].tolist()))
+                        hok = np.array([k is not None for k in hk])
+                        hk8 = np.array([k for k, m in zip(hk, hok) if m], np.uint64)
+                        if len(hk8):
+                            best = np.full(len(hk8), 255, np.uint8)
+                            for a in range(8):
+                                ha = hk8[:, a][:, None]
+                                for b in range(8):
+                                    d = np.bitwise_count(np.bitwise_xor(ha, tr_keys[:, b][None, :]))
+                                    np.minimum(best, d.min(axis=1), out=best)
+                            nd = self.cfg["dedupe"]["near_dist"]
+                            frac_nd = float((best <= nd).mean())
+                            frac_tight = float((best <= 7).mean())
+                            print(f"\nheld-out vs train D4 overlap (min over 8 D4 variants): "
+                                  f"{frac_nd:.1%} of {len(hk8)} held-out images within {nd} bits "
+                                  f"of a train image (near-duplicate), {frac_tight:.1%} within 7 bits")
+                            if frac_nd > 0.05:
+                                print("  WARNING: >5% overlap — the held-out score is inflated; "
+                                      "treat it as optimistic")
+                        else:
+                            print("held-out vs train D4 overlap SKIPPED (no held-out images hashed)")
+                    else:
+                        print("held-out vs train D4 overlap SKIPPED (no train keys available)")
+                else:
+                    print("held-out vs train D4 overlap SKIPPED (dedupe disabled)")
+
                 t = time.time()
                 Xh = np.stack([np.asarray(Image.open(p).convert("RGB")
                                            .resize((self.SIZE, self.SIZE), Image.BILINEAR),
@@ -1645,9 +1709,10 @@ class Pipeline:
         self.CR = self.WORK / "field_crawl"; self.CR.mkdir(parents=True, exist_ok=True)
         self.prov = []
         self.SESS = requests.Session()
-        # Wikimedia's UA policy asks for a descriptive agent with contact info.
+        # Wikimedia's UA policy asks for a descriptive agent with contact info. The address
+        # lives in CFG["crawl"]["contact"] so it is not hardcoded in the shipped source.
         self.SESS.headers.update({"User-Agent": "AgrisenseResearch/1.0 (academic rice-disease "
-                                                "model; contact: gau.mah077@gmail.com)"})
+                                                f"model; contact: {self.cfg['crawl']['contact']})"})
 
         assert self.cfg["crawl"]["role"] == "stress_test", "finetune role was removed on purpose"
         if self.cfg["crawl"]["enable"] and not self.cfg["smoke"]:

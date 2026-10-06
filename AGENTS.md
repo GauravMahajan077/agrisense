@@ -3,7 +3,7 @@ Goal: BETTER, not perfect. Real-world (internet/field) performance matters more 
 Rules:
 - Do not add features. Fix only what is listed in the task or what a real error forces.
 - One module `agrisense.py`; notebook = import + run. Print PIPELINE_VERSION in every entry point.
-- Must have `smoke` mode (40 img/class, 1 epoch/stage, no crawl/export). Run it before any full run.
+- Must have `smoke` mode (40 img/source/class, 1 epoch/stage, no crawl/export). Run it before any full run.
 - Never report success without pasting real run output. If you can't run it, say so.
 - Keep: class_weight, progressive unfreeze + asserts, val_macro_f1 checkpoint, grouped split.
 - Removed on purpose: LSH/sweep, hash cache, oversample/effective, finetune-crawl, dynamic TFLite.

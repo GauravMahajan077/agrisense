@@ -26,7 +26,9 @@ CFG = {
     "pre_size": 256,               # preload target; augmentation crops 256 -> 224
     "batch_size_per_replica": 64,  # global batch = this x num_replicas
     "amp": True,                   # mixed_float16
-    "jit": True,                   # XLA (auto-skipped when multi_gpu is on)
+    "jit": False,                  # XLA off by default: MacroF1 uses tf.math.confusion_matrix,
+                                   # a possible XLA compile failure, and at ~35 steps/epoch XLA
+                                   # saves almost nothing. True to try it on a single GPU.
     "multi_gpu": False,            # single GPU by default: MirroredStrategy adds friction
                                    # (XLA off, batch split) for no accuracy gain. True to try
                                    # both T4s anyway.
@@ -173,6 +175,7 @@ CFG = {
         "max_bytes": 5_000_000,      # per-image download cap (a 20 MB photo is never useful)
         "sleep": 0.3,
         "max_seconds": 180,
+        "contact": "gau.mah077@gmail.com",   # crawler User-Agent contact (Wikimedia UA policy)
         "queries": {
             "Brown_Spot": ["rice leaf brown spot disease", "oryza sativa brown spot leaf"],
             "Leaf_Blast": ["rice leaf blast disease", "rice blast lesion leaf field"],
