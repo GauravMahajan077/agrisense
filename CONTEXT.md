@@ -349,10 +349,37 @@ invariant (a cluster is entirely within one split).
   asserts, whole cluster lands in train, `min_class()` keeps the invariant, no cluster spans two
   splits.
 
-**Verification limits:** same as Phase 5.2 — local TF 2.21 ≠ Kaggle TF 2.20. The 3.1.2
-acceptance gate is a user-pasted Kaggle full re-run (smoke=False). Expected: `split sizes`
-prints, no `LEAK` assert, `cluster overlap train/val: 0` / `train/test: 0` / `val/test: 0`,
-then training → held-out macro-F1 + bootstrap CI (headline metric) → export/bundle PARITY line.
+**Acceptance gate MET (user-pasted full run, 3.1.2, smoke=False, 2026-10-06):**
+- `cluster overlap train/val: 0` / `train/test: 0` / `val/test: 0` — no LEAK assert.
+- Cross-class move relocated 6 images (whole clusters) to train; split 2796/596/597.
+- Training 3.8 min (budget 20), best val macro-F1 0.9488. VAL 0.9488 / TEST 0.9315, GAP +0.0173.
+- **SOURCE-HELD-OUT macro-F1 0.2436, bootstrap 95% CI [0.2265, 0.2599]** (headline metric).
+- held-out vs train D4 overlap: 1.5% within 4 bits / 4.1% within 7 bits.
+- Field stress test: top-1 50.0%, abstain@0.5 coverage 93.3% / top-1 on covered 51.8%.
+- Export float32 rebuilt, 320 tensors verified (max |delta| = 0.0). Bundle 31.1 MB.
+- PARITY keras-vs-tflite: 100% argmax agreement over 16 images, max |delta prob| = 0.0000.
+- Total notebook wall clock 10.8 min.
+
+## Phase 5.4 — post-run helper cells + download fix (no version bump)
+
+**Trigger:** after the 3.1.2 full run, the user wanted (a) a cell to download the trained
+bundle and (b) a cell to test the model on a photo uploaded from their local files.
+
+**What changed (helper cells only — no pipeline code, no version bump):**
+1. `cells/04_cell_4_download_model_bundle.py` — verifies the bundle, lists contents, and
+   explains the three real download paths. First version used `IPython.display.FileLink`,
+   which 404s on Kaggle (Kaggle does not serve `/kaggle/working` over HTTP — that is a Colab
+   trick). Replaced with: Output tab → Download, saved-version Output section, or local
+   `kaggle kernels output <owner>/<slug> -p ./agrisense`.
+2. `cells/05_cell_5_test_model_on_uploaded_photo.py` — loads the bundle's TFLite +
+   class_names.json and runs the exact Cell 18 contract (256×256 LANCZOS float32 0-255,
+   never /255). First version auto-triggered via `FileUpload.observe()`, which does not fire
+   reliably on Kaggle; replaced with an explicit **Predict** button (`Button.on_click`),
+   the reliable pattern.
+
+**Validation:** both cells are paste-ready helpers, not part of the notebook. `split_cells.py`
+does not regenerate them (they are wiped on the next run — re-copy from git history if needed).
+No verify.py changes; `PIPELINE_VERSION` stays 3.1.2.
 
 **Verification limits:** same as Phases 1–4 — local TF 2.21 ≠ Kaggle TF 2.20. The Phase 5
 acceptance gate is a user-pasted Kaggle smoke run of the new 3-cell notebook (Cell 1 CONFIG →
@@ -362,3 +389,9 @@ Cell 2 MODULE → Cell 3 RUN).
 Source-held-out: train on `anshul6` + `indo3`, test on `dedeikh` across the 5 shared classes
 (`Sheath_Blight` has no second source → excluded). In-source test F1 is secondary and expected
 to be much higher. **Built in Phase 3** (Cell 16.5, commit `ab04f7d`).
+
+**Measured on the 3.1.2 full run (2026-10-06):** SOURCE-HELD-OUT macro-F1 **0.2436**,
+bootstrap 95% CI **[0.2265, 0.2599]**, ACC 0.2397, worst-class recall 0.0274
+(Bacterial_Leaf_Blight). In-source TEST 0.9315. The gap is the real-world transfer estimate —
+the model does not transfer well to dedeikh's field photos. held-out vs train D4 overlap 1.5%
+within 4 bits confirms dedeikh is genuinely different, not a leak.

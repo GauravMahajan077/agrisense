@@ -10,7 +10,9 @@ Checks:
                               AST-matches DEFAULT_CFG, Cell 2 has the include directive,
                               Cell 3 calls run(CFG).
   * cells/                  — generated from the notebook: 3 code cells, all parse,
-                              MODULE cell is not stale, CONFIG cell matches.
+                              MODULE cell is not stale, CONFIG cell matches. Helper cells
+                              (04 download, 05 test) may also live here — they are not
+                              notebook cells and are excluded from the count.
   * ../old/agrisense_kaggle.py — legacy 23-cell notebook, kept on purpose, still parses.
   * field_test.py           — the field-test loader (Phase 4).
   * README.md               — key claims.
@@ -245,7 +247,9 @@ if nb.exists():
 
 print("\n=== generated cells ===")
 cells = sorted(pathlib.Path("cells").glob("*.py"))
-check("3 code cells generated", len(cells) == 3, f"got {len(cells)}")
+# Helper cells (04 download, 05 test) live in cells/ too but are NOT notebook cells.
+nb_cells = [f for f in cells if any(t in f.name for t in ("cell_1_", "cell_2_", "cell_3_"))]
+check("3 code cells generated", len(nb_cells) == 3, f"got {len(nb_cells)}")
 for f in cells:
     try:
         ast.parse(f.read_text(encoding="utf-8"))

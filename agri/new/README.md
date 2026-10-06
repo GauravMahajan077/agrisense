@@ -35,7 +35,13 @@ agri/
       01_cell_1_config_the_only_cell_you_edit.py
       02_cell_2_module_generated_from_agrisense_py_by_split_c.py
       03_cell_3_run_prints_pipeline_version_and_runs_the_whol.py
+      04_cell_4_download_model_bundle.py        <- helper: download the trained bundle
+      05_cell_5_test_model_on_uploaded_photo.py <- helper: test on a photo you upload
 ```
+
+The two helper cells (04, 05) are **not** part of the notebook — they are post-run extras.
+`split_cells.py` does not regenerate them, so a re-run of `python split_cells.py` wipes them
+(re-copy from git history if that happens).
 
 Rules:
 
@@ -562,6 +568,11 @@ The loader is eval-only by design — it never trains, never crawls, never write
 model. It is the honest test: if the field photos are real farm shots, this number is the
 real-world performance estimate.
 
+For a quick single-photo check **inside the Kaggle notebook itself**, use the helper cell
+`cells/05_cell_5_test_model_on_uploaded_photo.py` — it loads the same bundle and shows a
+"Choose a photo" upload button plus a Predict button (no need to upload to `/kaggle/working`
+first).
+
 ---
 
 ## 8. Run order
@@ -573,6 +584,8 @@ Cell numbers below match the filenames in `cells/`, so the table and the files l
 | 1 | `01_cell_1_config_the_only_cell_you_edit.py` | Edit `CFG` only. |
 | 2 | `02_cell_2_module_*.py` | The whole pipeline (21 stages). Do not hand-edit. |
 | 3 | `03_cell_3_run_*.py` | `run(CFG)` — prints `PIPELINE_VERSION`, runs every stage in order. |
+| 4 | `04_cell_4_download_model_bundle.py` | After the run: download `agrisense_bundle.zip` (Output tab → Download, or `kaggle kernels output`). Helper, not part of the pipeline. |
+| 5 | `05_cell_5_test_model_on_uploaded_photo.py` | After the run: upload a photo and predict (Choose a photo → Predict). Helper, not part of the pipeline. |
 | — | `field_test.py` (section 7.5) | After the run: test the downloaded bundle on real field photos. Eval only, runs anywhere. |
 
 The 21 stages inside Cell 2 map 1:1 to the legacy 23-cell notebook
