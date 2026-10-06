@@ -98,7 +98,7 @@ if mod.exists():
         mtree = None
         check("module parses", False, str(e))
 
-    check("PIPELINE_VERSION is 3.1.0", 'PIPELINE_VERSION = "3.1.0"' in msrc)
+    check("PIPELINE_VERSION is 3.1.1", 'PIPELINE_VERSION = "3.1.1"' in msrc)
     check("DEFAULT_CFG present", find_assign(mtree, "DEFAULT_CFG") is not None if mtree else False)
 
     if mtree:
@@ -192,6 +192,20 @@ if mod.exists():
           "SaveBestF1.best = -1.0" in method_source(msrc, "Pipeline", "train"))
     check("held_out has D4 overlap report",
           "held-out vs train D4 overlap" in method_source(msrc, "Pipeline", "held_out"))
+
+    # Phase 5.2 — Kaggle smoke-run fixes (use-after-delete crash + XLA + mounts).
+    check("preload decodes+hashes held-out before freeing",
+          "_preload_held" in method_source(msrc, "Pipeline", "preload"))
+    check("held_out uses preloaded held-out pixels",
+          "self.Xh[keep]" in method_source(msrc, "Pipeline", "held_out"))
+    check("held_out uses stored held-out keys",
+          "self.HK[keep & self.HOK]" in method_source(msrc, "Pipeline", "held_out"))
+    check("train forces jit_compile off",
+          '{"jit_compile": bool(self.JIT)}' in method_source(msrc, "Pipeline", "train"))
+    check("_mounted searches nested layouts",
+          '"*/*/*"' in method_source(msrc, "Pipeline", "_mounted"))
+    check("cleanup frees held-out pixels",
+          "self.Xh = None" in method_source(msrc, "Pipeline", "cleanup"))
 
 print("\n=== notebook: agrisense_notebook.py ===")
 nb = pathlib.Path("agrisense_notebook.py")

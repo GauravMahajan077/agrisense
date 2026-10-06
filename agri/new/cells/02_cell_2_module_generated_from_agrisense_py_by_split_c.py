@@ -48,7 +48,7 @@ import tensorflow.keras.callbacks as KC     # KC, not K — K is used as a class
 
 # Bumped on every intentional pipeline change. Printed at every entry point (start, train,
 # export, bundle) so a stale paste is visible in the log instead of silently shipping.
-PIPELINE_VERSION = "3.1.0"
+PIPELINE_VERSION = "3.1.1"
 
 
 # =====================================================================================
@@ -558,14 +558,19 @@ class Pipeline:
         return d
 
     def _mounted(self, slug):
-        """Find an Add Input mount whose directory name matches the slug tail."""
+        """Find an Add Input mount whose directory name matches the slug tail.
+        Kaggle's layout varies: /input/<slug> or /input/datasets/<owner>/<slug>, so
+        search a few depths instead of assuming one level."""
         want = slug.split("/")[-1].lower()
         base = Path("/kaggle/input")
         if not base.is_dir(): return None
-        for d in base.iterdir():
-            if d.is_dir() and want in d.name.lower() and self._n_images(d):
-                print(f"   Add Input mount '{d.name}' ({self._n_images(d)} imgs)")
-                return self._first_images(d)
+        for pat in ("*", "*/*", "*/*/*"):
+            for d in sorted(base.glob(pat)):
+                if d.is_dir() and want in d.name.lower():
+                    n = self._n_images(d)
+                    if n:
+                        print(f"   Add Input mount '{d}' ({n} imgs)")
+                        return self._first_images(d)
         return None
 
     def _cli_download(self, src):
@@ -1189,6 +1194,38 @@ class Pipeline:
               + (f"  ({int((~ok).sum())} unreadable dropped)" if not ok.all() else ""))
         return arr, df
 
+    def _preload_held(self):
+        """Decode + D4-hash the held-out source ONCE, while its files still exist.
+        preload() deletes CLI downloads afterwards; held_out() must never touch disk."""
+        self.Xh = self.HK = self.HOK = None
+        mh = self.man_held
+        if mh is None or not len(mh):
+            return
+        paths, n, S = mh["path"].tolist(), len(mh), self.SIZE
+        X = np.zeros((n, S, S, 3), np.uint8)
+        HK = np.zeros((n, 8), np.uint64)
+        ok = np.ones(n, bool); hok = np.zeros(n, bool)
+
+        def work(i):
+            try:
+                with Image.open(paths[i]) as im:
+                    try: im.draft("RGB", (S, S))          # scaled JPEG decode, like _preload
+                    except Exception: pass
+                    X[i] = np.asarray(im.convert("RGB").resize((S, S), Image.BILINEAR), np.uint8)
+            except Exception:
+                ok[i] = False; return
+            k = self._d4_keys(paths[i])
+            if k is not None:
+                HK[i] = np.asarray(k, np.uint64); hok[i] = True
+
+        t = time.time()
+        with ThreadPoolExecutor(self.cfg["workers"]) as ex:
+            list(ex.map(work, range(n)))
+        self.man_held = mh[ok].reset_index(drop=True)
+        self.Xh, self.HK, self.HOK = X[ok], HK[ok], hok[ok]
+        print(f"  held-out: {len(self.Xh)} imgs decoded + hashed in {time.time()-t:.0f}s "
+              f"({int((~ok).sum())} unreadable, {int((~hok[ok]).sum())} unhashed)")
+
     def preload(self):
         # budget covers train + val + test together
         per_mb = self.PRE * self.PRE * 3 / 1e6
@@ -1209,6 +1246,8 @@ class Pipeline:
         self.yte = np.array([self.CIDX[c] for c in self.te["class"]], np.int32)
 
         # (oversample was removed on purpose — class_weight only, see class_weights())
+
+        self._preload_held()      # must run BEFORE the CLI downloads are deleted below
 
         # Once the pixels are in RAM, the on-disk copies are dead weight — ~10 GB of it.
         # /kaggle/working is ~20 GB and the Keras/TFLite exports plus checkpoints need that space
@@ -1425,7 +1464,7 @@ class Pipeline:
             assert len(self.model.trainable_weights) > len(self.base_of(self.model).trainable_weights), \
                 "nothing is trainable — the head itself is frozen"
 
-            kw = {"jit_compile": True} if self.JIT else {}
+            kw = {"jit_compile": bool(self.JIT)}   # force False: Keras 3 compile() defaults to "auto" -> XLA on
             # compile INSIDE the strategy scope, or optimizer/metric variables land outside it
             with (self.STRATEGY.scope() if self.STRATEGY is not None else contextlib.nullcontext()):
                 self.model.compile(optimizer=tf.keras.optimizers.Adam(st["lr"]),
@@ -1538,11 +1577,7 @@ class Pipeline:
                     tr_mask = (self.man["split"] == "train").to_numpy()
                     tr_keys = self.keys8[tr_mask]
                     if len(tr_keys):
-                        t = time.time()
-                        with ThreadPoolExecutor(self.cfg["workers"]) as ex:
-                            hk = list(ex.map(self._d4_keys, mh["path"].tolist()))
-                        hok = np.array([k is not None for k in hk])
-                        hk8 = np.array([k for k, m in zip(hk, hok) if m], np.uint64)
+                        hk8 = self.HK[keep & self.HOK]      # hashed once in _preload_held()
                         if len(hk8):
                             best = np.full(len(hk8), 255, np.uint8)
                             for a in range(8):
@@ -1566,12 +1601,7 @@ class Pipeline:
                 else:
                     print("held-out vs train D4 overlap SKIPPED (dedupe disabled)")
 
-                t = time.time()
-                Xh = np.stack([np.asarray(Image.open(p).convert("RGB")
-                                           .resize((self.SIZE, self.SIZE), Image.BILINEAR),
-                                          dtype=np.float32)
-                               for p in mh["path"]])
-                print(f"preprocessed {len(Xh)} held-out images in {time.time()-t:.0f}s")
+                Xh = self.Xh[keep].astype(np.float32)      # decoded once in _preload_held()
                 Ph = self.model.predict(Xh, verbose=0)                       # (n, NC)
                 yh = np.array([self.CLASSES.index(c) for c in mh["class"]], np.int32)
                 shared_idx = {c: i for i, c in enumerate(shared)}
@@ -1884,6 +1914,7 @@ class Pipeline:
         del self.train_ds, self.val_ds, self.test_ds
         if self.USE_RAM:
             del self.Xtr, self.Xva, self.Xte
+        self.Xh = None
         gc.collect()
         print(f"freed input arrays; RAM available now {self._ram_gb()[1]:.1f} GB")
 

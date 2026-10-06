@@ -135,7 +135,9 @@ for roughly 1.7x throughput; two details it handles:
 
 `CFG["jit"] = False` (default). XLA is off by default even on a single GPU: `MacroF1` uses
 `tf.math.confusion_matrix`, a possible XLA compile failure, and at ~35 steps/epoch XLA
-compilation overhead is not worth it. Set it to `True` to try XLA on a single GPU.
+compilation overhead is not worth it. `train()` passes `jit_compile=False` explicitly because
+Keras 3's `compile()` defaults to `jit_compile="auto"`, which would otherwise enable XLA
+anyway. Set it to `True` to try XLA on a single GPU.
 
 ### Stack note: Python 3.13 / TF 2.20 / Keras 3
 

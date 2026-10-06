@@ -274,6 +274,51 @@ gate is a user-pasted Kaggle smoke run (expect `PIPELINE_VERSION 3.1.0`, `SMOKE:
 capped … (40/source/class)`, dedupe/split/min_class OK, 1 epoch/stage, `SMOKE: export/bundle
 skipped`), then the full run → read held-out macro-F1 + CI.
 
+## Phase 5.2 — Kaggle smoke-run fixes (PIPELINE_VERSION 3.1.1)
+
+**Trigger:** the 3.1.0 smoke run on Kaggle crashed in `held_out()` with
+`FileNotFoundError ... /_dl_rice-leafs-disease-dataset/x/...`. User supplied a Claude-authored
+fix; I compared it against my own diagnosis, adopted it with two refinements, and verified.
+
+**Root cause (use-after-delete):** `preload()` deletes the CLI download trees after loading
+train/val/test into RAM, but `held_out()` re-opened the held-out images from those same trees.
+Latent in 3.0.0 (old smoke cap dropped dedeikh, so held_out() never had images); the 3.1.0
+per-source+class cap exposed it. Would also have crashed the full run.
+
+**Two more real issues from the same log:**
+- XLA was still on: Keras 3 `compile()` defaults to `jit_compile="auto"`, and the pipeline only
+  passed the flag when `JIT` was true → `Compiled cluster using XLA!`, 95 s Stage A, `Delay
+  kernel timed out`. Fix: always pass `jit_compile=bool(self.JIT)`.
+- All three sources printed `[cli]` despite Add Input mounts attached: `_mounted()` only looked
+  one level deep in `/kaggle/input`. Fix: search `*`, `*/*`, `*/*/*` for the slug tail.
+
+**Fixes in `agri/new/agrisense.py`:**
+1. New `_preload_held()`: decodes held-out images at SIZE + D4-hashes them in one pass, storing
+   `self.Xh` (uint8), `self.HK` (n,8 uint64), `self.HOK` (bool), aligned with the filtered
+   `self.man_held`. Called from `preload()` BEFORE the CLI downloads are deleted.
+2. `held_out()`: overlap check uses `self.HK[keep & self.HOK]`; eval pixels use
+   `self.Xh[keep].astype(np.float32)` — never touches disk.
+3. `train()`: `kw = {"jit_compile": bool(self.JIT)}` (forces XLA off when `jit: False`).
+4. `_mounted()`: searches nested Add Input layouts (`*`, `*/*`, `*/*/*`).
+5. `cleanup()`: frees `self.Xh` before `gc.collect()`.
+6. `PIPELINE_VERSION = "3.1.1"`.
+
+**Validation (all real, pasted in session):**
+- `python -B split_cells.py` → 4 cells regenerated (3.1.1).
+- `python -B verify.py` → ALL PASS, exit 0 (77 checks incl. 6 new Phase 5.2 checks).
+- `python -B test_phase3_dedupe.py` → ALL PASS, exit 0.
+- `python -B test_phase4_field_test.py` → ALL PASS, exit 0.
+- Use-after-delete simulation: `_preload_held` decodes+hashes 2/2, files deleted, overlap from
+  RAM detects near-dupe (min D4 = 6), eval pixels float32 0-255 from RAM, cleanup frees Xh.
+
+**Verification limits:** same as Phase 5.1 — local TF 2.21 ≠ Kaggle TF 2.20. The 3.1.1
+acceptance gate is a user-pasted Kaggle smoke re-run. Expected: sources print `[mount]` (no
+`freed ... GB` line), Stage A takes seconds (no XLA/`Delay kernel` messages), a real
+`held-out vs train D4 overlap: x%` line, held-out report + bootstrap CI + abstain print, then
+`SMOKE: export skipped` / `SMOKE: bundle skipped`. If still `[cli]`, run `!ls /kaggle/input
+/kaggle/input/*` and match the exact mount path. Then full run → watch the PARITY line in
+export/bundle (not yet exercised on Kaggle).
+
 **Verification limits:** same as Phases 1–4 — local TF 2.21 ≠ Kaggle TF 2.20. The Phase 5
 acceptance gate is a user-pasted Kaggle smoke run of the new 3-cell notebook (Cell 1 CONFIG →
 Cell 2 MODULE → Cell 3 RUN).
