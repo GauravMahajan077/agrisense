@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "crop": "paddy/rice",
+    "region": "Konkan, Maharashtra",
+    "built_from": ["Konkan_Rice_DSS_Research_Report", "Joint Agresco-2018", "Joint Agresco-2023", "Rice variety Dr.BSKKV Dapoli"],
+    "note": "Every record carries source_pdf + page/line. No fabricated values."
+  },
+  "varieties": [
+    {"name": "Karjat-3", "duration_days": "115-120", "grain": "short bold", "window": "23rd MW (04-10 Jun)", "districts": ["Thane","Palghar","Raigad","Ratnagiri","Sindhudurg"], "yield_t_ha": "4.5-5.0", "resistance": null, "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 46},
+    {"name": "Karjat-7", "duration_days": "115-120", "grain": "long slender", "window": "23rd MW; early transplant 15 DAS", "districts": ["Konkan-wide"], "yield_t_ha": "4.5-5.0", "resistance": null, "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 53},
+    {"name": "Karjat-2", "duration_days": "115-120", "grain": null, "window": "23rd MW; early transplant 15 DAS", "districts": ["Konkan-wide"], "yield_t_ha": null, "resistance": null, "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 54},
+    {"name": "Karjat-8", "duration_days": "late", "grain": "short slender super-fine", "window": "low-land areas", "districts": ["Maharashtra low-land"], "yield_t_ha": "3.5-4.0", "resistance": ["neck blast", "bacterial blight (mod)", "leaf blast (mod)", "gall midge (mod)", "BPH/WBPH (tolerant)"], "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 69},
+    {"name": "Karjat-184", "duration_days": "105-120", "grain": "medium slender translucent", "window": "early kharif", "districts": ["Konkan"], "yield_t_ha": "3.0-3.5", "resistance": ["bacterial leaf blight (mod)", "blast (mod)", "BPH/WBPH (tolerant)"], "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 80},
+    {"name": "Ratnagiri-7 (RTN RR4)", "duration_days": "122-125", "grain": "red rice short bold", "window": "mid-late", "districts": ["Konkan"], "yield_t_ha": "4.5-5.0", "resistance": ["stem borer", "leaf folder", "gall midge", "leaf blast (mod)", "BLB (mod)"], "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 89},
+    {"name": "Panvel-1/2/3", "duration_days": null, "grain": null, "window": "coastal saline/Kharland", "districts": ["North Konkan"], "yield_t_ha": null, "resistance": ["salinity/alkalinity"], "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 99},
+    {"name": "Konkan Sanjay (KJTR-3)", "duration_days": "mid-early", "grain": "long slender", "window": "traditional rice areas", "districts": ["Maharashtra"], "yield_t_ha": null, "resistance": null, "source_pdf": "Joint Agresco-2023", "line": 10},
+    {"name": "Trombay Konkan Khara (BRCKKV-16)", "duration_days": null, "grain": "dwarf long slender", "window": "coastal soils", "districts": ["Maharashtra coastal"], "yield_t_ha": null, "resistance": null, "source_pdf": "Joint Agresco-2023", "line": 16},
+    {"name": "Sahyadri-3", "duration_days": null, "grain": null, "window": "nursery 23rd MW, transplant 15-day seedlings", "districts": ["South Konkan"], "yield_t_ha": "hybrid 5.5-7.5", "resistance": null, "source_pdf": "Joint Agresco-2018", "line": 63},
+    {"name": "BM-4 (Karjat Shatabdi)", "duration_days": "125-130", "grain": "short bold, scented (beaten-rice type)", "window": "kharif, Konkan region", "districts": ["Konkan"], "yield_t_ha": "3.8-4.0", "resistance": ["stem borer", "bacterial blight", "leaf blast"], "source_pdf": "Joint Agresco-2019", "line": 9},
+    {"name": "Low-light tolerant group (Karjat-2/3/6/7/8, Palghar-1/2)", "duration_days": null, "grain": "varies", "window": "kharif under low sunlight", "districts": ["Konkan"], "yield_t_ha": "stable (non-numeric in source)", "resistance": ["stable yield under low sunlight"], "source_pdf": "1. Paddy.ocr", "line": 383}
+  ],
+  "sowing_windows": [
+    {"district": "Sindhudurg", "window": "23rd MW (04-10 Jun)", "early": ["Karjat-3","Phondaghat-1"], "mid_late": ["Palghar-1","Karjat-5","Karjat-9"], "late": ["Karjat-2","Ratnagiri-8"], "source_pdf": "Joint Agresco-2023", "line": 67},
+    {"district": "Ratnagiri", "window": "23rd MW (04-10 Jun)", "early": null, "mid_late": ["Karjat-5"], "late": null, "source_pdf": "Joint Agresco-2023", "line": 79},
+    {"district": "Ratnagiri", "window": "24th MW (11-17 Jun)", "early": ["Ratnagiri-1"], "mid_late": null, "late": ["Ratnagiri-3","Ratnagiri-8"], "source_pdf": "Joint Agresco-2023", "line": 84},
+    {"district": "Raigad", "window": "23rd MW (04-10 Jun)", "early": ["Karjat-7","Karjat-3","Phondaghat-1"], "mid_late": ["Ratnagiri-6","Ratnagiri-7","Karjat-5","Karjat-9"], "late": ["Ratnagiri-8"], "source_pdf": "Joint Agresco-2023", "line": 93},
+    {"district": "Palghar", "window": "24th-25th MW (11-24 Jun)", "early": ["Karjat-7","Karjat-3","Ratnagiri-1","Phondaghat-1"], "mid_late": null, "late": null, "source_pdf": "Joint Agresco-2023", "line": 106}
+  ]
+}

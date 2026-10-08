@@ -1,0 +1,43 @@
+{
+  "meta": {"crop": "paddy", "region": "Konkan", "source": "Joint Agresco-2018/2021/2023"},
+  "fertilizer": [
+    {"zone": "South Konkan Coastal", "crop": "kharif rice", "n_kg_ha": 100, "p2o5_kg_ha": 40, "k2o_kg_ha": 40, "micronutrient": "20 kg ZnSO4/ha + foliar nano P+K+ZnO at 15 DAT (as per context)", "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 352},
+    {"zone": "North Konkan Coastal (rice-chickpea)", "crop": "kharif rice", "n_kg_ha": 75, "p2o5_kg_ha": 40, "k2o_kg_ha": 40, "notes": "75% RDF + 25% N via FYM (5 t/ha)", "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 354},
+    {"zone": "Konkan", "crop": "kharif rice", "notes": "Konkan Annapurna Briquettes 175 kg/ha recommended for balanced supply", "source_pdf": "Joint Agresco-2018", "line": 53},
+    {"zone": "Konkan", "crop": "kharif rice", "notes": "Konkan Annapurna Briquettes 175 kg/ha (34:14:6 NPKS) for full growth period", "source_pdf": "1. Paddy.ocr", "line": 405},
+    {"zone": "South Konkan Coastal (rice-sweet corn)", "crop": "kharif rice", "n_kg_ha": 170, "notes": "170 kg/ha Konkan Annapurna Briquette + 5 t FYM (25% RDN)", "source_pdf": "Joint Agresco-2020", "line": 81},
+    {"zone": "North Konkan Coastal (rice-sweet corn-green gram)", "crop": "kharif rice", "n_kg_ha": 100, "p2o5_kg_ha": 50, "k2o_kg_ha": 50, "notes": "Rice: 100:50:50 NPK kg/ha, spacing 20x15 cm", "source_pdf": "Joint Agresco-2022", "line": 118},
+    {"zone": "North Konkan Coastal (rice-cowpea organic)", "crop": "kharif rice", "n_kg_ha": 75, "p2o5_kg_ha": 40, "k2o_kg_ha": 40, "notes": "75% RDF + crop residue 2 t/ha + PSB 3.5 kg/ha + Glyricidia green leaf manuring 3 t/ha + Azospirillum 3.5 kg/ha", "source_pdf": "Joint Agresco-2018", "line": 99},
+    {"zone": "South Konkan Coastal (DSR under mulch)", "crop": "kharif rice", "notes": "Konkan Annapurna Briquettes 175 kg/ha (34:14:6) + ZnSO4 25 kg/ha + Copper sulfate 5 kg/ha as needed", "source_pdf": "1. Paddy.ocr", "line": 327},
+    {"zone": "North Konkan Coastal (rice-rice)", "crop": "kharif rice", "n_kg_ha": 120, "p2o5_kg_ha": 50, "k2o_kg_ha": 50, "notes": "Kharif (Sahyadri) 120:50:50:6 NPKS kg/ha; rabi/summer rice 100:50:50:0 NPKS kg/ha", "source_pdf": "1. Paddy.ocr", "line": 339},
+    {"zone": "North Konkan Coastal (rice-honeybee system)", "crop": "kharif rice", "notes": "50% of recommended N from chemical fertilizer + 50% from FYM", "source_pdf": "1. Paddy.ocr", "line": 332},
+    {"zone": "North Konkan Coastal (rice-sugarcane)", "crop": "kharif rice", "notes": "125% RDF on minimum tillage + 3 t/ha sugarcane trash mulch", "source_pdf": "1. Paddy.ocr", "line": 376}
+  ],
+  "pesticide": [
+    {"target": "rice stem borer and leaf folder", "chemical": "Cartap hydrochloride 4 G", "dose": "18.75 kg/ha", "timing": "nursery 2-3 days before transplanting; second at 30-35 DAT", "source_pdf": "Joint Agresco-2018", "line": 257},
+    {"target": "rice stem borer and leaf folder", "chemical": "Chlorantraniliprole 0.4% G", "dose": "10 kg/ha", "timing": "1st in nursery 2-3 days before transplanting; 2nd at 30-35 DAT as needed", "source_pdf": "1. Paddy.ocr", "line": 420},
+    {"target": "rice stem borer and leaf folder", "chemical": "Fipronil 0.3% G", "dose": "20.8 kg/ha", "timing": "1st in nursery 2-3 days before transplanting; 2nd at 30-35 DAT as needed", "source_pdf": "1. Paddy.ocr", "line": 420},
+    {"target": "rice stem borer (spray at ETL)", "chemical": "Acephate 75% WP", "dose": "12.5 g per 10 L water", "timing": "spray when ETL reached: 5% dead hearts or 1 female moth per sq.m", "source_pdf": "1. Paddy.ocr", "line": 348},
+    {"target": "sheath blight on rice (karpa roga)", "chemical": "Tricyclazole 75% WP", "dose": "10 g per 10 L water (0.1%)", "timing": "first spray at symptom appearance, then 2 sprays at 21-day intervals", "source_pdf": "1. Paddy.ocr", "line": 256},
+    {"target": "sheath blight on rice (karpa roga)", "chemical": "Isoprothiolane EC", "dose": "10 ml per 10 L water (0.1%)", "timing": "first spray at symptom appearance, then 2 sprays at 21-day intervals", "source_pdf": "1. Paddy.ocr", "line": 256},
+    {"target": "sheath blight and leaf blast on rice (karpa & parna karpa)", "chemical": "Hexaconazole 5% EC", "dose": "20 ml per 10 L water", "timing": "spray when disease observed", "source_pdf": "advisory-marathi.ocr", "line": 165},
+    {"target": "bacterial leaf blight on rice (kada karpa)", "chemical": "Streptocycline 2 g + Copper oxychloride 20 g", "dose": "2 g + 20 g per pump (10 L)", "timing": "preventive/curative spray at symptom appearance", "source_pdf": "advisory-marathi.ocr", "line": 208},
+    {"target": "rice stem borer", "chemical": "Beauveria bassiana (NBAIR)", "dose": "10 ml/L or 5 g/L", "timing": "as per infestation", "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 252},
+    {"target": "rice case worm", "chemical": "Colocasia esculenta extract (botanical)", "dose": "as per trial", "timing": "as per trial", "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 245},
+    {"target": "mango hopper (context)", "chemical": "buprofezin 25SC 0.05% (2 ml/L)", "dose": "2 ml/L", "timing": "third spray", "source_pdf": "Joint Agresco-2018", "line": 248},
+    {"target": "cashew apple and nut borer", "chemical": "Dichlorvos 76 EC 0.05%", "dose": "10 ml/10 L", "timing": "after initiation of infestation", "source_pdf": "Joint Agresco-2018", "line": 252},
+    {"target": "brown spot on rice", "chemical": "Ediphenphos 50% EC", "dose": "500-600 ml/ha (a.i. 250-300 g/ha)", "timing": "spray at symptom appearance; PHI 21 days", "source_pdf": "cibrc/mup_fungicides_31.03.2026", "line": 666},
+    {"target": "brown spot on rice", "chemical": "Azoxystrobin 8.3% + Mancozeb 66.7% WG", "dose": "1500 g/ha (a.i. 124.5+1000 g/ha)", "timing": "spray at symptom appearance; PHI 23 days", "source_pdf": "cibrc/mup_fungicides_31.03.2026", "line": 2927},
+    {"target": "brown spot on rice", "chemical": "Picoxystrobin 10% + Isoprothiolane 25% EC", "dose": "1000-1250 ml/ha (a.i. 350-437.5 g/ha)", "timing": "spray at symptom appearance; PHI 39 days", "source_pdf": "cibrc/mup_fungicides_31.03.2026", "line": 4648},
+    {"target": "brown spot on rice", "chemical": "Carbendazim 5% GR", "dose": "12.5 kg/ha (a.i. 0.62 kg/ha)", "timing": "apply as per label", "source_pdf": "cibrc/mup_fungicides_31.03.2026", "line": 215},
+    {"target": "leaf scald on rice", "chemical": "Mancozeb 75% WP", "dose": "1.5-2 kg/ha", "timing": "spray at symptom appearance", "source_pdf": "cibrc/mup_fungicides_31.03.2026", "line": 1056, "notes": "Off-label for leaf scald in India — no CIB&RC-registered scald claim exists. IRRI lists mancozeb among recommended foliar actives for leaf scald (Microdochium oryzae); dose shown is the CIB&RC rice registration for blast."},
+    {"target": "leaf scald on rice", "chemical": "Validamycin 3% L", "dose": "2000 ml/ha (a.i. 60 g/ha)", "timing": "spray at symptom appearance; PHI 14 days", "source_pdf": "cibrc/mup_fungicides_31.03.2026", "line": 2559, "notes": "Off-label for leaf scald in India — no CIB&RC-registered scald claim exists. IRRI lists validamycin among recommended field-spray actives for leaf scald; dose shown is the CIB&RC rice registration for sheath blight."},
+    {"target": "leaf scald on rice", "chemical": "Ediphenphos 50% EC", "dose": "500-600 ml/ha (a.i. 250-300 g/ha)", "timing": "spray at symptom appearance; PHI 21 days", "source_pdf": "cibrc/mup_fungicides_31.03.2026", "line": 666, "notes": "Off-label for leaf scald in India — no CIB&RC-registered scald claim exists. IRRI lists edifenphos among recommended field-spray actives for leaf scald; dose shown is the CIB&RC rice registration for brown spot."}
+  ],
+  "weeds": [
+    {"crop": "direct seeded rahu rice (kharif)", "herbicide": "Oxadiargyl 80% WP", "dose": "100 g a.i./ha", "timing": "2-3 DAS or 30 DAS", "source_pdf": "Joint Agresco-2023", "line": 137},
+    {"crop": "direct seeded rahu rice (kharif)", "herbicide": "Metasulfuron-methyl + chloromuron-ethyl", "dose": "4 g a.i./ha", "timing": "25 DAS", "source_pdf": "Joint Agresco-2023", "line": 138},
+    {"crop": "kharif rice, South Konkan Coastal", "herbicide": "Oxiflufen 300 g/ha pre-emergence + 2,4-D 500 g/ha post-emergence", "dose": "300 g/ha + 500 g/ha", "timing": "pre-emergence; or weeding at 20 and 40 DAT", "source_pdf": "1. Paddy.ocr", "line": 266},
+    {"crop": "kharif rice, North Konkan medium-black soil (DSR)", "herbicide": "Pretilachlor 30.7 EC", "dose": "0.50 kg a.i./ha", "timing": "mixed with urea fertilizer before sowing", "source_pdf": "1. Paddy.ocr", "line": 371}
+  ]
+}

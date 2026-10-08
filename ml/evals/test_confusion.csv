@@ -1,0 +1,7 @@
+,Bacterial_Leaf_Blight,Brown_Spot,Healthy,Leaf_Blast,Leaf_Scald,Sheath_Blight
+Bacterial_Leaf_Blight,103,0,0,4,1,0
+Brown_Spot,2,88,0,2,4,1
+Healthy,0,1,97,0,0,0
+Leaf_Blast,6,3,0,95,2,1
+Leaf_Scald,4,2,2,3,81,0
+Sheath_Blight,0,0,1,0,2,92

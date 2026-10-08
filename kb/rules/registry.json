@@ -1,0 +1,1316 @@
+{
+  "meta": {
+    "authority": "CIB&RC, Directorate of Plant Protection, Quarantine & Storage (DPPQS), Govt. of India",
+    "purpose": "Legality/registration layer for kb/rules chemicals. Brands and prices deliberately excluded (no authoritative free source).",
+    "as_of": {
+      "formulations": "2026-03-31",
+      "banned": "2026-07-31",
+      "major_uses": "2026-03-31"
+    },
+    "sources": [
+      "cibrc/formulations_registered_31.03.2026",
+      "cibrc/banned_refused_restricted",
+      "cibrc/mup_insecticides_31.03.2026",
+      "cibrc/mup_fungicides_31.03.2026",
+      "cibrc/mup_herbicides_31.03.2026",
+      "cibrc/mup_bio_insecticides_31.03.2026"
+    ],
+    "generated_by": "kb/build_registry.py"
+  },
+  "entries": {
+    "Cartap hydrochloride 4 G": {
+      "section": "pesticide",
+      "actives": [
+        "Cartap"
+      ],
+      "status": "registered",
+      "formulation_match": "numeric",
+      "registered_formulations": [
+        {
+          "text": "52  Cartap Hydrochloride 04% Granules",
+          "line": 74
+        },
+        {
+          "text": "53  Cartap Hydrochloride 50% SP",
+          "line": 76
+        },
+        {
+          "text": "54  Cartap Hydrochloride 75% SG",
+          "line": 78
+        },
+        {
+          "text": "713  Cartap hydrochloride 25% + Emamectin benzoate 1% SG",
+          "line": 1409
+        },
+        {
+          "text": "714  CartapHydrochloride 4.0%+ Fipronil 0.50% GC",
+          "line": 1411
+        },
+        {
+          "text": "715  Cartaphydrochloride 50%+ Buprofezin 10% WP",
+          "line": 1413
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Cartap": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 631,
+          "text": "Rice (Paddy)                                  750-1000 18750-25000      -             35-89"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 635,
+          "text": "Rice (Paddy) Stem borer, Leaf folder              500        1000 500 �1000                09"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 639,
+          "text": "Rice           Yellow stem borer, Leaf        318.75 �375    425 �500   250 �500           03"
+        }
+      ]
+    },
+    "Chlorantraniliprole 0.4% G": {
+      "section": "pesticide",
+      "actives": [
+        "Chlorantraniliprole"
+      ],
+      "status": "registered",
+      "formulation_match": "numeric",
+      "registered_formulations": [
+        {
+          "text": "55  Chlorantraniliprole 0.40% GR",
+          "line": 80
+        },
+        {
+          "text": "56  Chlorantraniliprole 0.53% w/w GR",
+          "line": 82
+        },
+        {
+          "text": "57  Chlorantraniliprole 18.50% SC",
+          "line": 84
+        },
+        {
+          "text": "58  Chlorantraniliprole 35% WG",
+          "line": 86
+        },
+        {
+          "text": "59  Chlorantraniliprole 47.85% w/w SC",
+          "line": 88
+        },
+        {
+          "text": "60  Chlorantraniliprole 50% FS",
+          "line": 90
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Chlorantraniliprole": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 645,
+          "text": "Rice           Stem borer, Leaf folder            30            375        1000            07"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 694,
+          "text": "Rice(Paddy) Yellow stem borer                  40                   Broadcast            53"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 722,
+          "text": "Rice       Leaf folder                         39.75    7500 g      Direct Broadcasting  63"
+        }
+      ]
+    },
+    "Fipronil 0.3% G": {
+      "section": "pesticide",
+      "actives": [
+        "Fipronil"
+      ],
+      "status": "registered",
+      "formulation_match": "numeric",
+      "registered_formulations": [
+        {
+          "text": "146  Fipronil 0.03% Gel",
+          "line": 260
+        },
+        {
+          "text": "147  Fipronil 0.05% GEL",
+          "line": 262
+        },
+        {
+          "text": "148  Fipronil 0.30% GR",
+          "line": 264
+        },
+        {
+          "text": "149  Fipronil 0.60%w/w GR",
+          "line": 266
+        },
+        {
+          "text": "150  Fipronil 0.6% WG",
+          "line": 268
+        },
+        {
+          "text": "151  Fipronil 0.8% WG",
+          "line": 270
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Fipronil": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 931,
+          "text": "Paddy                                        30+45+75           7500"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 1886,
+          "text": "Rice                                             80"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 1896,
+          "text": "Rice       Stem borer, Brown plant             50�75    1000 �1500     500        32"
+        }
+      ]
+    },
+    "Acephate 75% WP": {
+      "section": "pesticide",
+      "actives": [
+        "Acephate"
+      ],
+      "status": "registered",
+      "formulation_match": "numeric",
+      "registered_formulations": [
+        {
+          "text": "4       Acephate 75% SP",
+          "line": 11
+        },
+        {
+          "text": "5       Acephate 95% SG",
+          "line": 12
+        },
+        {
+          "text": "6       Acephate 97% DF",
+          "line": 13
+        },
+        {
+          "text": "683  Acephate 25%+ Fenvalerate 3% EC",
+          "line": 1349
+        },
+        {
+          "text": "684  Acephate 45%+ Cypermethrin 5% DF",
+          "line": 1351
+        },
+        {
+          "text": "685  Acephate 50%+ Bifenthrin 10% WDG",
+          "line": 1353
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Acephate": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 77,
+          "text": "Rice (Paddy)      Yellow stem borer,     500 �750    666 �100          300 �500"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 90,
+          "text": "Paddy(Rice)       borer, Leaf folder,    727.50            750         500"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 100,
+          "text": "Rice(Paddy)       folder, Brown          562.50            592         500"
+        }
+      ]
+    },
+    "Tricyclazole 75% WP": {
+      "section": "pesticide",
+      "actives": [
+        "Tricyclazole"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "542 Tricyclazole 70% WG",
+          "line": 1047
+        },
+        {
+          "text": "543 Tricyclazole 75% WP",
+          "line": 1049
+        },
+        {
+          "text": "889  Azoxystrobin16.7%+Tricyclazole 33.3%SC",
+          "line": 1719
+        },
+        {
+          "text": "904 Azoxystrobin 18.75% + Tricyclazole 37.5% WG",
+          "line": 1749
+        },
+        {
+          "text": "987  Picoxystrobin 6.78%+Tricyclazole 20.33% SC",
+          "line": 1911
+        },
+        {
+          "text": "989  Prochloraz 23.5%+Tricyclazole 20% SE",
+          "line": 1915
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Tricyclazole": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 568,
+          "text": "Rice    Bakane (Gibberella                                    5-7 ml Slurry          -"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 2544,
+          "text": "Paddy (Rice) Blast           225- 300-              500"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 3074,
+          "text": "Rice    Blast (Magnaporthe"
+        }
+      ]
+    },
+    "Isoprothiolane EC": {
+      "section": "pesticide",
+      "actives": [
+        "Isoprothiolane"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "490  Isoprothiolane 40% EC",
+          "line": 944
+        },
+        {
+          "text": "825  Isoprothiolane 28% + Fipronil 5% EC",
+          "line": 1590
+        },
+        {
+          "text": "902 Azoxystrobin 7.5% + Tebuconazole 12% + Isoprothiolane 12% SE",
+          "line": 1745
+        },
+        {
+          "text": "905 Azoxystrobin 4% + Isoprothiolane 12% + Mancozeb 30% WP w/w",
+          "line": 1750
+        },
+        {
+          "text": "937  Fenoxanil 5%+ Isoprothiolane 30% EC",
+          "line": 1814
+        },
+        {
+          "text": "957  Isoprothiolane 25% + Picoxystrobin 10% EC",
+          "line": 1851
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Isoprothiolane": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 5250,
+          "text": "Rice         hopper, Green           280+50         1000   500      58"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 842,
+          "text": "Rice (Paddy) Blast            300               750            500-1000           60"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 2901,
+          "text": "Rice    sheath blight and 100+300+750     2500              500              25"
+        }
+      ]
+    },
+    "Hexaconazole 5% EC": {
+      "section": "pesticide",
+      "actives": [
+        "Hexaconazole"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "482  Hexaconazole 0.5% GR",
+          "line": 929
+        },
+        {
+          "text": "483  Hexaconazole 2% SC",
+          "line": 931
+        },
+        {
+          "text": "484  Hexaconazole 5% EC",
+          "line": 933
+        },
+        {
+          "text": "485  Hexaconazole 5% SC",
+          "line": 935
+        },
+        {
+          "text": "486  Hexaconazole 75% WG",
+          "line": 937
+        },
+        {
+          "text": "806  Flubendiamide 3.50% + Hexaconazole 5% WG",
+          "line": 1553
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Hexaconazole": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 4956,
+          "text": "Paddy(Rice)  Stem borer, Leaf              35 +50         1000        500      20"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 4977,
+          "text": "Rice         Stem borer &         50 +250                 667    500       30"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 5568,
+          "text": "Paddy       Leaf Hopper, Yellow         100 + 70 + 50          400            500      19"
+        }
+      ]
+    },
+    "Streptocycline 2 g + Copper oxychloride 20 g": {
+      "section": "pesticide",
+      "actives": [
+        "Streptocycline",
+        "Copper oxychloride"
+      ],
+      "status": "registered",
+      "formulation_match": "unverified",
+      "registered_formulations": [
+        {
+          "text": "460  Copper Oxychloride 40% paste",
+          "line": 885
+        },
+        {
+          "text": "461  Copper Oxychloride 50% WP",
+          "line": 887
+        },
+        {
+          "text": "462  Copper Oxychloride 50% WG",
+          "line": 889
+        },
+        {
+          "text": "463  Copper Oxychloride 56% OP",
+          "line": 891
+        },
+        {
+          "text": "923  Copper Oxychloride 47% + Metalaxyl 8% WP",
+          "line": 1786
+        },
+        {
+          "text": "956  Iprovalicarb 8.4% + copper oxychloride 68.2% w/w (40.6% w/w as Cu) WG",
+          "line": 1849
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Streptocycline": {
+          "in_formulations_list": false,
+          "in_major_uses": true
+        },
+        "Copper oxychloride": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 4106,
+          "text": "Rice (Paddy)  Leaf blast, Neck        350                   700      375                    26"
+        }
+      ]
+    },
+    "Beauveria bassiana (NBAIR)": {
+      "section": "pesticide",
+      "actives": [
+        "Beauveria bassiana"
+      ],
+      "status": "registered",
+      "formulation_match": "unverified",
+      "registered_formulations": [
+        {
+          "text": "591  Beauveria bassiana 1.15% WP",
+          "line": 1155
+        },
+        {
+          "text": "592  Beauveria bassiana 1.15% WP (1x108/gmmin) Strain BB-ICAR-RJP, Accession No�",
+          "line": 1157
+        },
+        {
+          "text": "593  Beauveria bassiana 1.15% WP (Strain: BB �5372, own R&D Isolate)",
+          "line": 1161
+        },
+        {
+          "text": "594  Beauveria bassiana 1.15%WP (1x108 /gm min) Strain ICAR, Research Complex, Umiam,",
+          "line": 1163
+        },
+        {
+          "text": "595  Beauveria bassiana 1.15%WP (1x108/gm min) Accession No �NAIMCC-F- 03045, Strain",
+          "line": 1167
+        },
+        {
+          "text": "596  Beauveria bassiana 1.15%WP (1x108/spores/ml) Strain BCRL, Accession No�",
+          "line": 1171
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Beauveria bassiana": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_bio_insecticides_31.03.2026",
+          "line": 346,
+          "text": "Rice     Leaf folder                -      2.50 kg/ha       750-850                                -"
+        },
+        {
+          "pdf": "cibrc/mup_bio_insecticides_31.03.2026",
+          "line": 352,
+          "text": "Rice     Rice leaf folder         -            2.5 kg.                  750-850"
+        },
+        {
+          "pdf": "cibrc/mup_bio_insecticides_31.03.2026",
+          "line": 360,
+          "text": "Rice     Rice leaf folder         -            2.5 kg.                  600-750                -"
+        }
+      ]
+    },
+    "Colocasia esculenta extract (botanical)": {
+      "section": "pesticide",
+      "actives": [
+        "Colocasia"
+      ],
+      "status": "not_listed",
+      "formulation_match": "unverified",
+      "registered_formulations": [],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Colocasia": {
+          "in_formulations_list": false,
+          "in_major_uses": false
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [],
+      "note": "active not found in CIB&RC formulations list as on 31.03.2026 (botanical/uncertified or spelling variant) — rule kept as cited agronomy advice, not confirmed as a registered product"
+    },
+    "buprofezin 25SC 0.05% (2 ml/L)": {
+      "section": "pesticide",
+      "actives": [
+        "Buprofezin"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "46  Buprofezin 25% SC",
+          "line": 62
+        },
+        {
+          "text": "47  Buprofezin 70% DF",
+          "line": 64
+        },
+        {
+          "text": "706  Buprofezin 20%+ Acephate 50% WP",
+          "line": 1395
+        },
+        {
+          "text": "707  Buprofezin 20%+ Acetamiprid 2% WP",
+          "line": 1397
+        },
+        {
+          "text": "708  Buprofezin 22.0%+ Fipronil 3.0% SC",
+          "line": 1399
+        },
+        {
+          "text": "709  Buprofezin 22.5% + Diafenthiuron 27% w/v SC",
+          "line": 1401
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Buprofezin": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 526,
+          "text": "Rice                       Brown plant hopper                                          -             -"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 3836,
+          "text": "Rice (Paddy) Brown plant              54 +144            600   500"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 3848,
+          "text": "Paddy (Rice)  Brown plant                  187.5 +437.5  1250  500"
+        }
+      ]
+    },
+    "Dichlorvos 76 EC 0.05%": {
+      "section": "pesticide",
+      "actives": [
+        "Dichlorvos"
+      ],
+      "status": "banned",
+      "formulation_match": "none",
+      "registered_formulations": [],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Dichlorvos": {
+          "in_formulations_list": false,
+          "in_major_uses": false
+        }
+      },
+      "banned": {
+        "category": "banned",
+        "line": 109,
+        "text": "B. 2.        Dichlorvos ( S.O. 1196 (E) dated 20th March 2020)",
+        "src": "cibrc/banned_refused_restricted",
+        "restriction": "banned_for_use_export_only",
+        "restriction_text": "banned for use in India (manufacture continues for export only)"
+      },
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [],
+      "note": "DO NOT RECOMMEND: banned for use in India (manufacture continues for export only)"
+    },
+    "Ediphenphos 50% EC": {
+      "section": "pesticide",
+      "actives": [
+        "Ediphenphos",
+        "Edifenphos"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "475  Edifenphos 50% EC",
+          "line": 915
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Ediphenphos": {
+          "in_formulations_list": false,
+          "in_major_uses": true
+        },
+        "Edifenphos": {
+          "in_formulations_list": true,
+          "in_major_uses": false
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 664,
+          "text": "Paddy (Rice) Blast              250-300      500-600          750-1000        21"
+        }
+      ]
+    },
+    "Azoxystrobin 8.3% + Mancozeb 66.7% WG": {
+      "section": "pesticide",
+      "actives": [
+        "Azoxystrobin",
+        "Mancozeb"
+      ],
+      "status": "restricted",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "442  Azoxystrobin 23% SC",
+          "line": 849
+        },
+        {
+          "text": "494  Mancozeb 35% SC",
+          "line": 952
+        },
+        {
+          "text": "495  Mancozeb 75% WP",
+          "line": 954
+        },
+        {
+          "text": "496  Mancozeb 75% WG",
+          "line": 956
+        },
+        {
+          "text": "858  Sedaxane 12.61% + Azoxystrobin 3.15% + Thiamethoxam 22.6% FS",
+          "line": 1656
+        },
+        {
+          "text": "883  Azoxystrobin 20% + Boscalid 25% SE",
+          "line": 1707
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Azoxystrobin": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        },
+        "Mancozeb": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": [
+        {
+          "category": "restricted",
+          "line": 229,
+          "text": "11. Mancozeb",
+          "src": "cibrc/banned_refused_restricted"
+        },
+        {
+          "category": "restricted",
+          "line": 239,
+          "text": "Mancozeb is banned for use on Guava, Jowar and Tapioca.",
+          "src": "cibrc/banned_refused_restricted"
+        }
+      ],
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 3614,
+          "text": "Rice          borer, leaf folder, 62.5+             1250"
+        },
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 3708,
+          "text": "Rice       Leaf Blast, Brown   1.35 g per           3 ml per kg seed       8 to 10 ml per kg seed  hence waiting"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 2831,
+          "text": "Paddy (Rice) Blast & sheath     0.03% or 0.3 g/l 0.1% or 1 ml /     500"
+        }
+      ],
+      "note": "restriction is crop-specific and does not mention rice — rice use is not affected by the restriction"
+    },
+    "Picoxystrobin 10% + Isoprothiolane 25% EC": {
+      "section": "pesticide",
+      "actives": [
+        "Picoxystrobin",
+        "Isoprothiolane"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "490  Isoprothiolane 40% EC",
+          "line": 944
+        },
+        {
+          "text": "511  Picoxystrobin 22.52% SC",
+          "line": 986
+        },
+        {
+          "text": "825  Isoprothiolane 28% + Fipronil 5% EC",
+          "line": 1590
+        },
+        {
+          "text": "902 Azoxystrobin 7.5% + Tebuconazole 12% + Isoprothiolane 12% SE",
+          "line": 1745
+        },
+        {
+          "text": "905 Azoxystrobin 4% + Isoprothiolane 12% + Mancozeb 30% WP w/w",
+          "line": 1750
+        },
+        {
+          "text": "937  Fenoxanil 5%+ Isoprothiolane 30% EC",
+          "line": 1814
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Picoxystrobin": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        },
+        "Isoprothiolane": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_insecticides_31.03.2026",
+          "line": 5250,
+          "text": "Rice         hopper, Green           280+50         1000   500      58"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 842,
+          "text": "Rice (Paddy) Blast            300               750            500-1000           60"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 1375,
+          "text": "Rice (Paddy) Rice blast      150          600               500         12"
+        }
+      ]
+    },
+    "Carbendazim 5% GR": {
+      "section": "pesticide",
+      "actives": [
+        "Carbendazim"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "449  Carbendazim 25% DS",
+          "line": 863
+        },
+        {
+          "text": "450  Carbendazim 46.27% SC",
+          "line": 865
+        },
+        {
+          "text": "451  Carbendazim 5% GR",
+          "line": 867
+        },
+        {
+          "text": "452  Carbendazim 50% WP",
+          "line": 869
+        },
+        {
+          "text": "826  Lambda-Cyhalothrin 5% + Clothianidin 5% + Carbendazim 37% SC",
+          "line": 1592
+        },
+        {
+          "text": "910  Carbendazim 1.92% + Mancozeb10.08%GR",
+          "line": 1760
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Carbendazim": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 215,
+          "text": "Paddy (Rice) Brown leaf spot                               1Lit./10 kg seed"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 230,
+          "text": "Paddy (Rice) Blast                                                            treatment)"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 3294,
+          "text": "Paddy (Rice) Blast, sheath blight        240+1260   12.5         Broadcasting 46"
+        }
+      ]
+    },
+    "Mancozeb 75% WP": {
+      "section": "pesticide",
+      "actives": [
+        "Mancozeb"
+      ],
+      "status": "restricted",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "494  Mancozeb 35% SC",
+          "line": 952
+        },
+        {
+          "text": "495  Mancozeb 75% WP",
+          "line": 954
+        },
+        {
+          "text": "496  Mancozeb 75% WG",
+          "line": 956
+        },
+        {
+          "text": "885  Azoxystrobin 11.5%+Mancozeb 30.0%WP",
+          "line": 1711
+        },
+        {
+          "text": "892  Azoxystrobin 4.7%+Mancozeb59.7%+Tebuconazole 5.6%WG",
+          "line": 1725
+        },
+        {
+          "text": "896  Azoxystrobin 8.3% + Mancozeb 66.7% WG",
+          "line": 1733
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Mancozeb": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": [
+        {
+          "category": "restricted",
+          "line": 229,
+          "text": "11. Mancozeb",
+          "src": "cibrc/banned_refused_restricted"
+        },
+        {
+          "category": "restricted",
+          "line": 239,
+          "text": "Mancozeb is banned for use on Guava, Jowar and Tapioca.",
+          "src": "cibrc/banned_refused_restricted"
+        }
+      ],
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 2901,
+          "text": "Rice    sheath blight and 100+300+750     2500              500              25"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 2964,
+          "text": "Paddy        Sheath blight, Brown 90 + 1350 + 60  2000 gm   500"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 3294,
+          "text": "Paddy (Rice) Blast, sheath blight        240+1260   12.5         Broadcasting 46"
+        }
+      ],
+      "note": "restriction is crop-specific and does not mention rice — rice use is not affected by the restriction"
+    },
+    "Validamycin 3% L": {
+      "section": "pesticide",
+      "actives": [
+        "Validamycin"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "546 Validamycin 3%L",
+          "line": 1055
+        },
+        {
+          "text": "930  Difenoconazole 6% + Validamycin 6% SC",
+          "line": 1800
+        },
+        {
+          "text": "951  Hexaconazole 5%+Validamycin 2.5%SC",
+          "line": 1839
+        },
+        {
+          "text": "1019  Thifluzamide 9% + Difenoconazole 6% + Validamycin 3% SC",
+          "line": 1952
+        },
+        {
+          "text": "1035  Validamycin 5% + Tebuconazole 15% SC",
+          "line": 1968
+        },
+        {
+          "text": "1036  Validamycin 2.8% + Propiconazole 6% EW",
+          "line": 1969
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Validamycin": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 2559,
+          "text": "Rice (Paddy) Sheath Blight       60gm 2000gm 750               straw of"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 3685,
+          "text": "Rice     Blast & Sheath Blight 60.0 + 60.0            1000      500                    40"
+        },
+        {
+          "pdf": "cibrc/mup_fungicides_31.03.2026",
+          "line": 3955,
+          "text": "Paddy (Rice) Blast &Sheath 50+25                          1000"
+        }
+      ]
+    },
+    "Oxadiargyl 80% WP": {
+      "section": "weeds",
+      "actives": [
+        "Oxadiargyl"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "373  Oxadiargyl 6%EC",
+          "line": 709
+        },
+        {
+          "text": "374  Oxadiargyl 80%WP",
+          "line": 711
+        },
+        {
+          "text": "1108 Oxadiargyl 1% + Pretilachlor 6% GR",
+          "line": 2045
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Oxadiargyl": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 4218,
+          "text": "Paddy          Echinochloa colona,"
+        }
+      ]
+    },
+    "Metasulfuron-methyl + chloromuron-ethyl": {
+      "section": "weeds",
+      "actives": [
+        "Metsulfuron",
+        "Metasulfuron",
+        "Chlorimuron",
+        "Chlormuron"
+      ],
+      "status": "registered",
+      "formulation_match": "unverified",
+      "registered_formulations": [
+        {
+          "text": "316  Chlorimuron Ethyl 25% WP + Surfactant",
+          "line": 596
+        },
+        {
+          "text": "370  Metsulfuron-methyl 20%WG",
+          "line": 703
+        },
+        {
+          "text": "371  Metsulfuron-methyl 20%WP",
+          "line": 705
+        },
+        {
+          "text": "1039 2,4-D Sodium salt 48% + Metribuzin 32% + Chlorimuron ethyl 0.85% WDG",
+          "line": 1974
+        },
+        {
+          "text": "1047 Bispyribac-Sodium 15% + Metsulfuron-methyl 2.4% + Chlorimuron ethyl 3.6% OD",
+          "line": 1982
+        },
+        {
+          "text": "1049 Bispyribac sodium 38% + Chlorimuron ethyl 2.5% + Metsulfuron methyl 2.5% WG",
+          "line": 1984
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Metsulfuron": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        },
+        "Metasulfuron": {
+          "in_formulations_list": false,
+          "in_major_uses": false
+        },
+        "Chlorimuron": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        },
+        "Chlormuron": {
+          "in_formulations_list": false,
+          "in_major_uses": false
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 300,
+          "text": "Rice                                                     0.75-1.0  0.2 % (Iso-"
+        },
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 2937,
+          "text": "Rice           Echinochloa crusgalli,        6.3"
+        },
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 2947,
+          "text": "Paddy          Echinochloa colona,           BispyribacSo 100 g/ha 300       78"
+        }
+      ]
+    },
+    "Oxiflufen 300 g/ha pre-emergence + 2,4-D 500 g/ha post-emergence": {
+      "section": "weeds",
+      "actives": [
+        "Oxyfluorfen",
+        "Oxiflufen",
+        "2,4-D"
+      ],
+      "status": "restricted",
+      "formulation_match": "unverified",
+      "registered_formulations": [
+        {
+          "text": "296  2,4-D Amine Salt 58% SL",
+          "line": 557
+        },
+        {
+          "text": "297  2,4-D Ethyl Ester 20% WP",
+          "line": 559
+        },
+        {
+          "text": "298  2,4-D Ethyl Ester 38% EC",
+          "line": 561
+        },
+        {
+          "text": "299  2,4-D Ethyl Ester 4.5% GR",
+          "line": 563
+        },
+        {
+          "text": "300  2,4-D Sodium Salt 80% min.",
+          "line": 565
+        },
+        {
+          "text": "301  2,4-D Sodium 95% WDG",
+          "line": 567
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Oxyfluorfen": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        },
+        "Oxiflufen": {
+          "in_formulations_list": false,
+          "in_major_uses": false
+        },
+        "2,4-D": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": [
+        {
+          "category": "restricted",
+          "line": 249,
+          "text": "14. Oxyfluorfen",
+          "src": "cibrc/banned_refused_restricted"
+        },
+        {
+          "category": "restricted",
+          "line": 263,
+          "text": "Oxyfluorfen is banned for use on Potato and Groundnut.",
+          "src": "cibrc/banned_refused_restricted"
+        }
+      ],
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 622,
+          "text": "Paddy          Euphorbia hirta,                                     500       300-330"
+        },
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 664,
+          "text": "Paddy          Echinochloa colonum"
+        },
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 1920,
+          "text": "Rice (Direct sown     Echinochloa sp.                     30-40 kg -"
+        }
+      ],
+      "note": "restriction is crop-specific and does not mention rice — rice use is not affected by the restriction"
+    },
+    "Pretilachlor 30.7 EC": {
+      "section": "weeds",
+      "actives": [
+        "Pretilachlor"
+      ],
+      "status": "registered",
+      "formulation_match": "exact",
+      "registered_formulations": [
+        {
+          "text": "386  Pretilachlor 30.7% EC",
+          "line": 735
+        },
+        {
+          "text": "387  Pretilachlor 37% EW",
+          "line": 737
+        },
+        {
+          "text": "388  Pretilachlor 50% EC",
+          "line": 739
+        },
+        {
+          "text": "1044 Bensulfuron methyl 0.6%+Pretilachlor 6% Gr.",
+          "line": 1979
+        },
+        {
+          "text": "1045 Bensulfuron methyl 4.8% + Pretilachlor 48% OD",
+          "line": 1980
+        },
+        {
+          "text": "1069 Fenoxaprop p ethyl 5% + Chlorimuron ethyl 0.6% + Pretilachlor 50% ME",
+          "line": 2006
+        }
+      ],
+      "formulations_src": "cibrc/formulations_registered_31.03.2026",
+      "active_presence": {
+        "Pretilachlor": {
+          "in_formulations_list": true,
+          "in_major_uses": true
+        }
+      },
+      "banned": null,
+      "restricted": null,
+      "restriction_mentions_rice": false,
+      "rice_evidence": [
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 2796,
+          "text": "Rice               Cyperus iria,"
+        },
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 2812,
+          "text": "Rice          Echinochloa colonum,"
+        },
+        {
+          "pdf": "cibrc/mup_herbicides_31.03.2026",
+          "line": 2832,
+          "text": "Rice          colonum, Echinochloa"
+        }
+      ]
+    }
+  }
+}

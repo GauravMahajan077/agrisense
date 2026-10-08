@@ -1,0 +1,7 @@
+class,support,recall
+Bacterial_Leaf_Blight,107,0.925
+Brown_Spot,95,0.926
+Healthy,98,0.99
+Leaf_Blast,107,0.935
+Leaf_Scald,94,0.968
+Sheath_Blight,95,0.947

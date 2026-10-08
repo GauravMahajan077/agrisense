@@ -1,0 +1,6 @@
+district,actual_mm,normal_mm,departure_pct,source
+Raigad,1843.4,1175.2,57,IMD state_rain.pdf (via Konkan_Rice_DSS_Research_Report)
+Ratnagiri,1408.1,1145.1,23,IMD state_rain.pdf (via Konkan_Rice_DSS_Research_Report)
+Sindhudurg,754.3,1034.3,-27,IMD state_rain.pdf (via Konkan_Rice_DSS_Research_Report)
+Thane,1451.4,945.7,53,IMD state_rain.pdf (via Konkan_Rice_DSS_Research_Report)
+KonkanGoa_subdivision,1404.2,1053.5,33,IMD state_rain.pdf (via Konkan_Rice_DSS_Research_Report)

@@ -1,0 +1,662 @@
+Evidence-Based Rice Decision Support System
+      for the Konkan Region of Maharashtra
+
+                                       Ground Research Report (Source-Verified)
+
+                                                                   Prepared: September 2026
+                                             Scope: Palghar · Thane · Raigad · Ratnagiri · Sindhudurg
+Ground Research Report (Source-Verified)
+
+Note on method: This report is built only from information located through live web search of official/primary and peer-reviewed sources. No factual value (yield, dose, duration, incidence) has been
+invented. Wherever the search did not surface a Konkan-specific, sourced number, that is stated explicitly as "Evidence not found / insufficient evidence" rather than filled in. Given the enormous scope
+of the original brief (18 sections, dozens of sub-tables), this report prioritizes depth and correctness on the load-bearing sections (varieties, sowing window, fertilizer, pests, weather, tools, research
+gap) over manufacturing complete-looking tables for every cell requested. Sections/cells with no verifiable source are marked as gaps -- these gaps are themselves useful project findings.
+
+1. Executive Summary
+
+Rice in the Konkan coastal strip of Maharashtra is grown almost entirely as a rainfed kharif crop on lateritic, acidic, coastal-alluvial and coastal-saline (Kharland) soils, under very high (roughly 1,000­
+3,500 mm) but erratic monsoon rainfall. The region's dedicated agricultural university, Dr. Balasaheb Sawant Konkan Krishi Vidyapeeth (DBSKKV), Dapoli, together with its constituent Regional
+Agricultural Research Station at Karjat and the Kharland Research Station at Panvel, has released 25 improved rice varieties and 5 hybrids since 1972, several of which (Karjat2, Karjat3, Karjat7,
+Karjat8, Karjat184, the Ratnagiri series, the Panvel series for saline soils, and the Sahyadri hybrids) have documented, sourced agronomic and disease/pest-resistance data. Official DBSKKV
+JointAgresco recommendations give concrete fertilizer doses and sowing/establishment guidance for kharif rice in specific Konkan zones (not one universal number). A peer-reviewed DBSKKV agronomy
+trial (Jagtap et al., 2017) gives sourced, meteorological-week-specific sowing-window results. Konkan-specific, sourced pest evidence exists (Hatwar et al., 2025, Vegetos journal) for stem borer, leaf
+folder and case worm on Konkan farms, and blast is documented in the literature as agronomically important in Konkan specifically (IntechOpen, 2021) -- though a comparable-across-pests
+incidence/severity ranking dataset for Konkan could not be located and must be explicitly flagged as unavailable. IMD district rainfall bulletins give real actual-vs-normal seasonal rainfall figures for the
+five target districts. On the digital-tools side, the state's flagship advisory app has evolved rapidly (from generic MahaVISTAAR/MahaVISTAARAI to the BharatVISTAAR national platform and a 2026
+MahaAgX data layer), all of which are cropgeneric and state/national in scope, not Konkanspecific or ricevarietyspecific decision engines -- this is the central research gap your proposed DSS
+can credibly fill. Multiple existing ML "crop recommendation systems" exist for Maharashtra generally, but none identified in this search perform varietylevel, evidencecited, Konkanspecific rice
+recommendation -- supporting (not proving, in the absence of an exhaustive systematic review) a genuine research gap for your project.
+
+2. Verified Konkan Rice Varieties
+
+2.1 Overview (official / university-level facts)
+
+    DBSKKV, established 1972 (renamed 2001), has released 25 improved rice varieties and 5 hybrids as of the most recent institutional summary found. [Source: indiaagronet.com profile of
+    DBSKKV; DBSKKV old.dbskkv.org Varieties page]
+    The Regional Agricultural Research Station (RARS), Karjat, Raigad, under DBSKKV, is the lead rice-breeding station: it developed 11 straight (inbred) varieties and 4 hybrids since 1972 (10
+    more were selected 1919­1970 before DBSKKV existed), and released India's first Maharashtra hybrid rice, Sahyadri, in 1998 (third rice hybrid released in India). [Source: The Better India, 2018,
+    profile of RARS Karjat -- secondary journalism source, treat variety count as indicative, not official]
+    Konkan accounts for roughly 29.65% of Maharashtra's total rice production against 23.70% of the area, i.e., Konkan rice productivity is above the state average. [Source: The Better India, 2018]
+    A DBSKKV/ICAR journal article (Shinde et al., 2018, Advanced Agricultural Research & Technology Journal) states Konkan's average rough-rice productivity was 4.25 t/ha, higher than Western
+    Maharashtra (3.5 t/ha) and Vidarbha (3.4 t/ha) in the reference year of that study. [Source: isasat.org, Shinde et al. 2018]
+
+2.2 Variety table (only entries with a located, cited source)
+
+Variety  Grain type   Duration (days)  Recommended         Soil suitability  Salinity suitability Sowing/transplanting Yield evidence           Disease/pest           Source
+Karjat3  Short, bold                   region/district                                                         window                           resistance
+                      Short duration,                      Not specified in                                                                                            Shinde et al. 2018
+                      115­120          Accepted across     source            Not specified  Not specified in this  High yielding, 4.5­5.0 t/ha  Not specified in this  (isasat.org);
+                                       Thane, Palghar,                                      source                 (farmer-field level)         source                 ResearchGate table
+                                       Raigad, Ratnagiri,                                                                                                              extract
+                                       Sindhudurg (all 5
+                                       target districts)
+Karjat7          Long slender          Short duration,       Accepted, Konkan-      Not specified  Not specified       DBSKKV 2021 Agresco:       High yielding, 4.5­5.0 t/ha   Not specified in        Shinde et al. 2018;
+Karjat2          Not specified         115­120               wide; also used in                                        recommended with                                         these sources           DBSKKV Joint
+                                                             Goa and West                                              early transplanting (15                                                          Agresco2021
+                                                             Bengal per one                                            DAS) or normal                                                                   Official
+                                                             source                                                    transplanting for yield                                                          Recommendations
+                                                                                                                       stability under variable                                                         (dbskkv.org PDF)
+                                                                                                                       kharif rainfall in Konkan
+
+                                       Not specified         Konkan region          Not specified  Not specified       DBSKKV 2021 Agresco:       Not specified in this source  Not specified           DBSKKV Joint
+                                                                                                                       recommended together                                                             Agresco2021
+                                                                                                                       with Karjat7 for yield                                                           Official
+                                                                                                                       stability under variable                                                         Recommendations
+                                                                                                                       rainfall, with
+                                                                                                                       recommended or early
+                                                                                                                       transplanting
+
+Karjat8          Short slender,        Late duration, semi-  Low-lying ("low        Not specified  Not specified       Not specified              3.5­4.0 t/ha average;         Resistant to neck       Peer-reviewed
+                 "super-fine"          dwarf                 land") areas of                                                                      12.61­28.05% higher yield     blast; moderately       variety-release paper
+                                                             Maharashtra                                                                          than checks in                resistant to bacterial  (ResearchGate,
+                                                                                                                                                  station/state/adaptive        blight and leaf blast;  "Super fine rice
+                                                                                                                                                  trials                        moderately              variety Karjat 8 for
+                                                                                                                                                                                resistant to gall       low land areas of
+                                                                                                                                                                                midge; tolerant to      Maharashtra State")
+                                                                                                                                                                                brown planthopper
+                                                                                                                                                                                and white-backed
+                                                                                                                                                                                planthopper
+
+Karjat184        Medium slender,       Early, 105­120        Konkan region          Not specified  Not specified       Not specified              3.0­3.5 t/ha average;         Moderately resistant    Peer-reviewed
+                 translucent           days (Kharif), dwarf                                                                                       21.5% higher yield than       to bacterial leaf       variety-release paper
+                                       plant (80­85 cm)                                                                                           checks in adaptive trials;    blight and blast;       (ResearchGate,
+                                                                                                                                                  milling 75.0%, head-rice      tolerant to brown       "Karjat184, an early
+                                                                                                                                                  recovery 55.6%                planthopper and         rice variety for
+                                                                                                                                                                                white-backed            Konkan region of
+                                                                                                                                                                                planthopper at          Maharashtra state")
+                                                                                                                                                                                endemic sites
+
+Ratnagiri7 (RTN  Red rice, short bold  Mid-late, 122­125     Recommended for        Not specified  Not specified       Not specified              4.5­5.0 t/ha average;         Resistant to stem       Peer-reviewed
+RR4)                                   days, semi-dwarf      release for                                                                          23.88%/18.69%/39.40%          borer, leaf folder,     release paper
+                                       (100­110 cm)          commercial                                                                           higher yield than             gall midge;             (ijcmas.com, 2018)
+                                                             cultivation in Konkan                                                                IR64/BPT5204/Kalanamak        moderately              -- evolved via
+                                                             region (2017)                                                                        respectively in AICRIP        resistant to leaf       mutant selection
+                                                                                                                                                  trials                        blast and bacterial     from MO17 at
+                                                                                                                                                                                leaf blight             Agricultural Research
+                                                                                                                                                                                                        Station, Shirgaon,
+                                                                                                                                                                                                        Dist. Ratnagiri
+
+Panvel1,         Not specified in      Not specified         Coastal saline /       Not specified  Bred/tested         Not specified              Not specified numerically     Not specified           Nature Scientific
+                                                             Kharland soils, North                 specifically for                               in these sources                                      Reports (2017)
+Panvel2, Panvel3 these sources                               Konkan (developed                     coastal saline and                                                                                   mega-environment
+                                                             at BSKKV Kharland                     alkaline soils                                                                                       salinity study
+                                                             Research Station,                                                                                                                          identifies BSKKV
+                                                             Panvel)                                                                                                                                    Kharland RS Panvel
+                                                                                                                                                                                                        as a discriminating
+                                                                                                                                                                                                        salinity test site;
+                                                                                                                                                                                                        ResearchGate review
+                                                                                                                                                                                                        "Rice breeding for
+                                                                                                                                                                                                        salt tolerance" lists
+                                                                                                                                                                                                        Panvel1/2/3 among
+                                                                                                                                                                                                        ~30 varieties bred
+                                                                                                                                                                                                        for coastal
+Ratnagiri1,          Not specified        Not specified       Reported as         Not specified                   Not specified  Not specified      "Performed well" per          Not specified for  saline/alkaline soils
+Ratnagiri2,                                                   performing well                                     Not specified  Not specified      farmer interviews (270 rice   most of these
+Palghar1, Palghar2,                                           on farmers' fields                                                                    growers, North Konkan,                           Meshram et
+Panvel2, Panvel3,                                             in North Konkan                                                                       2005­2016) -- no numeric                         al. (ijcmas.com
+Ratnagiri73,                                                  (2005­2016 study)                                                                     yield given in the located                       Special Issue11),
+Sahyadri, Phalguna,                                           -- this is farmer-                                                                    excerpt                                          "Examine the
+Sughandhamati,                                                reported/field-                                                                                                                        Sustainability of Rice
+Heera, Jaya, Ratna,                                           performance                                                                                                                            Varieties in North
+Komal, Supriya,                                               evidence, not an                                                                                                                       Konkan"
+Panvel1, Karjat4                                              official variety
+                                                              dossier
+
+Sahyadri /           Not specified in this Not specified      Konkan (developed   Not specified                                                     Hybrid productivity range     Not specified      The Better India
+Sahyadri4            search                                   at RARS Karjat)                                                                       for DBSKKV rice hybrids                          (2018) -- names
+                                                                                                                                                    generally is 5.5­7.5 t/ha                        Sahyadri as first
+                                                                                                                                                    (institutional figure, not                       Maharashtra rice
+                                                                                                                                                    variety-specific)                                hybrid (1998), third
+                                                                                                                                                                                                     in India
+
+Ratnagiri2 through Ratnagiri6, Phondaghat1, and most other named varieties in the brief: searched but no individually sourced agronomic dossier (duration/yield/resistance) was
+located in this session beyond the farmer-field mention above. NOT VERIFIED as individually documented -- do not treat as currently recommended without further primary-document
+retrieval (e.g., DBSKKV's own variety catalogue PDF, which the search could not fully open/parse in this session).
+
+Important caution the brief specifically asked for: none of the above should be read as "currently most popular" -- the Meshram et al. field list is a 2005­2016 retrospective farmer survey in North
+Konkan only, and several institutionally "released" varieties may since have been superseded in the Agresco system. A current DBSKKV variety catalogue (2024/2025) was not successfully retrieved
+as full text in this session -- this is a flagged gap.
+
+3. Condition-Specific Variety Ranking
+
+Per the brief's explicit instruction, no single "best variety" is given. Rankings below are limited to what is actually sourced; most requested categories (acidic soil ranking, disease-pressure ranking,
+pest-pressure ranking, grain-quality-focused ranking) returned no comparable multi-variety ranking study in this search and are marked accordingly.
+
+Condition                                                     Ranking found                                           Evidence / location / season                                Label
+Sowing-window performance (Konkan, kharif)
+                                                              Variety Swarna (long duration) > Jaya (at par with      Split-plot field trial, kharif 2015­16, Dept. of Agronomy,  OUR RESEARCH-BASED RANKING, drawn directly from
+                                                              Swarna) > other tested varieties (Karjat5, Palghar1,    DBSKKV Dapoli. Highest grain yield 5,782 kg/ha and          a single peer-reviewed DBSKKV trial (Jagtap, Mahadkar &
+                                                              Karjat2), when all are sown in the 23rd Meteorological  straw yield 6,462 kg/ha for 23rd MW + Swarna.               Chavan, 2017, Agricultural Science Digest 37(1):78­80)
+                                                              Week                                                                                                                -- not an official Agresco variety ranking, but a controlled
+                                                                                                                                                                                  experimental result specific to Konkan
+Rainfall-variability / yield-stability (kharif, Konkan- Karjat2 and Karjat7, transplanted at recommended              DBSKKV Joint Agresco2021 official recommendation
+                                                                                                                                                                                  OFFICIAL DBSKKV RECOMMENDATION
+wide)                                                         time or early (15 days after sowing)                    BSKKV Kharland Research Station, Panvel -- cited as
+                                                                                                                      origin institution in salinity studies (Nature Sci.         Variety identification is OFFICIAL (institutional origin); a
+Coastal saline / Kharland soil                                Panvel1, Panvel2, Panvel3 are the named varieties       Rep. 2017; salt-tolerance review)                           performance ranking between the three is NOT
+                                                              associated with this soil type; no head-to-head yield   Peer-reviewed variety release paper                         VERIFIED / insufficient evidence
+                                                              ranking among the three located
+                                                                                                                      Peer-reviewed variety release paper                         OFFICIAL (release-paper recommendation)
+Late duration / low-lying ("low land") areas                  Karjat8 specifically bred/recommended for low-land      --
+                                                              areas                                                                                                               OFFICIAL (release-paper recommendation)
+
+Early-duration / drought-risk situations                      Karjat184 (105­120 days, early)                                                                                     Explicitly flagged per the brief's own Part 5 instruction,
+                                                                                                                                                                                  extended here to Part 2 where no comparable ranking
+Lateritic soil, acidic soil, high-rainfall rainfed condition  Cannot scientifically rank from available evidence                                                                  data was found
+(standalone, not tied to a sowing-window trial), late         in this session
+
+sowing, areas with disease pressure, areas with pest
+pressure, yield-focused cultivation, grain-quality-focused
+cultivation
+
+4. Soil  Rice Variety Mapping
+
+Soil type                  Characteristics found                     pH / salinity                          Nutrient constraints                 Varieties with specific evidence      Source
+Lateritic                                                                                                   Silicon-uptake study exists (see     General Konkan varieties (Karjat      DBSKKV silicon-in-rice-soils study
+                           Dominant upland soil type of Konkan;      Not quantified in the sources          below) but no NPK-constraint figure  series) grown here per station        (archive.dbskkv.org)
+Acidic                     DBSKKV soil-silicon study sampled         retrieved this session                 retrieved                            locations, but no soil-type-specific
+                           lateritic soils at Lanja and Dapoli                                                                                   variety trial located                 --
+Coastal alluvial           (Ratnagiri) among its representative                                             NOT VERIFIED
+Coastal saline / Kharland  sites                                                                                                                 NOT VERIFIED                          --
+                                                                                                            NOT VERIFIED
+                           Referenced as a major Konkan rice-        NOT VERIFIED                                                                NOT VERIFIED                          DBSKKV silicon-in-rice-soils study;
+                           soil condition in the brief; a dedicated                                         Not quantified in sources found                                            Nature Sci. Rep. 2017; salt-tolerance
+                           Konkan-specific acid-soil rice variety                                                                                Panvel1, Panvel2, Panvel3             review (ResearchGate)
+                           trial was not located in this session                                                                                 (bred at Kharland Research Station,
+                                                                                                                                                 Panvel)
+                           Referenced as a major Konkan rice-        NOT VERIFIED
+                           growing soil; specific characterisation
+                           source not located in this session
+
+                           Occupies limited area along creek         Predominantly saline (qualitative; no
+                           banks in all four southern/central        numeric EC/pH range retrieved)
+                           Konkan districts studied
+                           (Thane/Raigad/Ratnagiri/Sindhudurg
+                           per the DBSKKV silicon study's
+                           sampling zones); predominantly
+                           saline; rice is the only kharif crop
+                           grown on these soils
+
+Silicon content note (research result, not a blanket recommendation): A DBSKKV soil study measured water-soluble silicon in Konkan rice soils sampled at Lanja, Dapoli, Roha, Panvel (Kharland
+RS), Karjat and Palghar, comparing them against silicon benchmarks from Tamil Nadu and international studies -- this is cited as a research finding on soil silicon status, not an official fertilizer
+recommendation. [Source: archive.dbskkv.org silicon study]
+
+Explicit gap: Complete pH ranges and nutrient-constraint tables for lateritic, acidic and coastal-alluvial soils, as officially documented by DBSKKV soil science departments, were not retrieved as full
+text in this session (the DBSKKV Agronomy department document that appeared in search results returned only fragmentary OCR text). This should be a priority follow-up: fetch the DBSKKV Department
+of Soil Science recommendations directly from dbskkv.org.
+
+5. Sowing / Transplanting Window Analysis
+
+5.1 Verified DBSKKV field-trial result (most specific evidence located)
+
+Jagtap, D. N., Mahadkar, U. V., & Chavan, S. A. (2017). "Response of rice varieties to different sowing windows under Konkan conditions." Agricultural Science Digest, 37(1), 78­80.
+- Conducted at Dept. of Agronomy, College of Agriculture, DBSKKV Dapoli, kharif 2015­16. - Design: split-plot, 3 replications; main plot = 3 sowing windows (23rd, 24th, 25th Meteorological Week);
+sub-plot = 5 varieties (Karjat5, Palghar1, Jaya, Swarna, Karjat2). - Result: sowing in the 23rd Met. Week gave significantly higher grain yield (5,782 kg/ha) and straw yield (6,462
+kg/ha) than the 24th and 25th Met. Weeks. - Among varieties, long-duration Swarna gave the highest yield, with Jaya statistically at par; both outperformed the other three varieties tested. -
+Conclusion (verified, quoted in substance not verbatim): for Konkan kharif rice, the 23rd Meteorological Week is the recommended sowing window when growing Swarna or Jaya, for higher yield
+and economic return.
+This directly supports (and gives Konkan-specific experimental grounding to) the brief's reference to "22nd­25th MW."
+
+5.2 Official transplanting-method recommendation (fertilizer/agronomy angle)
+DBSKKV Joint Agresco2021 recommends, for rice cv. Karjat2 and Karjat7, either recommended-time transplanting or early transplanting (15 days after sowing) as the method to achieve
+better performance and yield stability under Konkan's variable kharif rainfall. [Official DBSKKV recommendation]
+
+5.3 General ICAR contingency-plan reference points (not Konkan-specific -- included for contrast only)
+
+ICARCRRI's national rice contingency plan describes generic early/normal/late sowing-window fallback logic (e.g., early-medium duration varieties transplantable up to September first week under
+delayed monsoon; direct-seeded short-duration varieties up to end-August under further delay). This is a national/Odisha-oriented contingency framework, not Konkan-specific, and must not
+be presented as a Konkan recommendation -- it is included here only as a general methodological reference per the brief's instruction to consult ICAR sources; the actual Konkan-specific figure is
+the DBSKKV 23rd/24th/25th MW study in §5.1.
+
+5.4 Gap
+
+A full "early / normal / late window with duration-matched variety list" table specific to each of the five Konkan districts, and the underlying DBSKKV Department of Agronomy district-wise sowing
+recommendations referenced in the fragment retrieved (which mentioned separate tables for Sindhudurg, Ratnagiri and Palghar districts), could not be retrieved as complete, readable tables in this
+session -- the source document ( Department of Agronomy.docx , api.dbskkv.org) returned only fragmentary/duplicated OCR text. This is a named, high-value follow-up document for your team to
+fetch directly and extract table-by-table.
+
+6. Region-Specific Pest & Disease Evidence
+
+6.1 Verified Konkan-specific studies
+
+Pest/Disease                                Konkan location                                 Year/season                                  Evidence found                                   Source
+                                                                                            2025 publication
+Stem borer (yellow stem borer), leaf        Konkan region field trials (exact district not                                               Solvent-based botanical extract efficacy trial:  Hatwar, N. K., Jalgaonkar, V. N., Naik, K. V.,
+folder, white ear head, rice case worm      specified in the abstract retrieved)                                                         Vitex negundo most effective botanical,          Meshram, N. A., & Jadhav, A. (2025).
+                                                                                                                                         reducing dead-heart 60.51%, white ear-head       "Assessing the efficacy of solvent based
+                                                                                                                                         74.69%, leaf-folder population 62.50%;           botanical extracts on major rice insect pests
+                                                                                                                                         Colocasia esculenta extract gave best            in the Konkan region of Maharashtra."
+                                                                                                                                         control (73.68% reduction) specifically for      Vegetos. https://doi.org/10.1007/s42535-025-
+                                                                                                                                         rice case worm                                   01306-x
+
+Stem borer                                  Konkan (North/South split referenced: North     Recent (2025 journal)                        Biopesticide efficacy trial: Beauveria           biochemjournal.com (2025), "Efficacy of
+                                            Konkan 65.07% of Konkan paddy area, South                                                    bassiana (NBAIR strain) at 10 ml/L gave          different biopesticides against stem borer
+                                            Konkan 34.93%, citing Meshram et al. 2020)                                                   5.80% stem-borer infestation; a DBSKKV           infesting rice"
+                                                                                                                                         Beauveria bassiana formulation at 5 g/L gave
+                                                                                                                                         5.94% infestation (comparable performance)
+
+Rice blast                                  Named explicitly as agronomically important     Review article (2021) synthesising multiple  Qualitative statement of regional                Ghazanfar, M. U. et al. or IntechOpen chapter
+                                            "in the Konkan region of Maharashtra and        surveys                                      importance; no Konkan-specific                   "Rice Blast Disease in India: Present Status
+                                            Gujarat," contrasted with other national                                                     quantitative incidence/severity                  and Future Challenges" (2021)
+                                            hotspot regions                                 Not dated in the abstract                    percentage was located in this session
+
+Insecticidal/traditional plant use against  Explicitly surveyed in Ratnagiri, Raigad                                                     84 plants across 40 families documented for      "Indigenous traditional practices for eco-
+pests (ethnobotanical, not efficacy-        and Sindhudurg among other Maharashtra                                                       traditional insect/pest management use by        friendly management of insect/pest in
+tested)                                     regions                                                                                      local communities -- this is                     Maharashtra, India" (core.ac.uk)
+                                                                                                                                         farmer/traditional-knowledge
+                                                                                                                                         information, not a controlled efficacy or
+                                                                                                                                         incidence study
+
+6.2 Bacterial leaf blight, sheath blight, brown planthopper, gall midge -- Konkan-specific incidence/severity data
+
+Evidence not found / insufficient evidence. The search surfaced extensive BLB/BPH/gall-midge literature for Karnataka, Pakistan, Thailand and other regions, and generic national IPM packages
+(NIPHM), but no Konkan-district-level incidence or severity survey for these specific diseases/pests was located in this session. Variety-level resistance claims do exist (see §2.2 table -- e.g.,
+Ratnagiri7 and Karjat8's stated resistance/moderate-resistance to specific pests/diseases from their release papers), and these are the strongest available proxy for "which pests matter in Konkan,"
+since a variety would not be bred/tested for resistance to a pest that were not locally relevant. This is stated here as our inference, not as directly measured incidence data.
+
+6.3 Ranking by incidence / severity / economic loss
+
+Per the brief's own instruction: "Cannot scientifically rank from available evidence." The available Konkan-specific sources (Hatwar et al. 2025; the biopesticide stem-borer trial) test control
+efficacy, not comparative incidence/severity/economic-loss ranking across pests. No comparable multi-pest Konkan incidence dataset was located.
+
+7. Abiotic Stress Analysis
+
+Stress                                            Konkan evidence found                                       Affected areas                                          Source
+Excess rainfall / flooding-waterlogging                                                                       Ratnagiri, Raigad, Sindhudurg (repeatedly, multiple     IMD-sourced news reports (Deccan Herald, News on Air),
+                                                  Recurrent IMD red/orange alerts and flood reports for       monsoon seasons)                                        2018­2025
+Coastal salinity                                  Ratnagiri, Raigad, Sindhudurg during monsoon (e.g.,
+                                                  2025 red alert episodes with 24-hr rainfall of 88.1 mm at   Along creek banks, Thane/Raigad/Ratnagiri/Sindhudurg    DBSKKV silicon-in-Konkan-rice-soils study
+Soil acidity, iron toxicity, dry spells/drought,  Ratnagiri, 65.3 mm Raigad; a separate event recording       (Panvel Kharland RS is the dedicated research station)
+nutrient deficiency                               up to 475 mm at Murud village near Dapoli in 24 hours)                                                              --
+                                                  -- these are weather-event reports, not a                   NOT VERIFIED
+                                                  systematic crop-damage study, but they substantiate
+                                                  that extreme-rainfall/flooding risk is a real, recurring
+                                                  feature of the target districts
+
+                                                  Documented Kharland (coastal saline) soil zone along
+                                                  creek banks across all four southern/central Konkan
+                                                  districts sampled by the DBSKKV silicon study, where
+                                                  "rice is the only crop grown in kharif season" -- i.e.,
+                                                  salinity is a defining, not marginal, constraint in these
+                                                  specific zones
+
+                                                  Referenced generically in the brief as Konkan concerns,
+                                                  and plausible given Konkan's lateritic soil base and high-
+                                                  rainfall leaching, but no Konkan-specific quantitative
+                                                  study on any of these four was located in this
+                                                  session
+
+Explicit statement per the brief's instruction: these abiotic stresses should not be assumed uniformly important across all of Konkan -- the only stress with strong, geographically specific sourced
+evidence in this session is coastal/Kharland salinity (a localized, creek-bank phenomenon) and excess-rainfall/flood risk (a recurring, district-wide monsoon phenomenon evidenced by repeated IMD
+alerts).
+
+8. Weather Data and Relevance
+
+8.1 Verified, current IMD seasonal rainfall (2026 season bulletin, subdivision: KonkanGoa)
+
+District                                          Actual seasonal rainfall (mm)                               Normal (mm)                                             Departure (%)
+Raigad                                            1,843.4                                                     1,175.2                                                 +57%
+Ratnagiri                                         1,408.1                                                     1,145.1                                                 +23%
+
+Sindhudurg                                        754.3                                                       1,034.3                                                 -27%
+Thane                                             1,451.4                                                     945.7                                                   +53%
+KonkanGoa subdivision (overall)               1,404.2                                                      1,053.5                                       +33%
+
+Source: IMD Mumbai Regional Meteorological Centre, state rainfall bulletin (mausam.imd.gov.in/mumbai/mcdata/state_rain.pdf), accessed September 2026. Note: this is a single-season snapshot
+(current 2026 monsoon, as of the bulletin date), not a multi-year climatological average -- a genuine multi-decadal Ratnagiri/Sindhudurg/Raigad average could not be retrieved as clean tabular data in
+this session (IndiaStatDistricts.com hosts a monthly-rainfall-all-years dataset for Ratnagiri but the content was not extracted as usable figures here).
+
+8.2 Extreme rainfall events (illustrative, not climatological)
+
+Multiple documented IMD red/orange-alert episodes for Ratnagiri and Raigad with 24-hour rainfall in the 65­475 mm range at specific stations (Murud, Harnai, Dapoli, Burondi, Dabhol, Anjarle, Chiplun,
+Lanja) across 2018, 2025 and 2026 monsoon seasons -- useful as evidence that extreme daily rainfall is a recurring feature to model, but each figure is a single-event observation, not an
+annual-probability statistic. [IMD via Deccan Herald / News on Air reports]
+
+8.3 What is NOT verified
+
+Humidity data, temperature normals, and dry-spell-frequency statistics specific to Ratnagiri/Sindhudurg/Raigad were not retrieved as usable figures in this session. Do not fabricate these -- they
+should be pulled directly from IMD's Hydromet/Agromet division or the India Water Portal/IMD Pune Agromet Advisory Service pages in a follow-up session.
+
+8.4 Which weather variables could realistically feed the DSS (our inference, clearly labelled)
+
+Based only on what is actually available from IMD's public bulletins (seasonal/weekly rainfall totals by district, daily station-level rainfall, and red/orange/yellow alert classifications), a Konkan rice DSS
+could realistically ingest: (a) weekly/meteorological-week rainfall totals per district -- directly matches the Jagtap et al. sowing-window logic in §5; (b) IMD's existing alert-level classification as a proxy
+flood/excess-rainfall risk flag; (c) seasonal actual-vs-normal departure, as already published district-wise. Humidity and fine-grained dry-spell data would require a direct data-sharing arrangement with
+IMD Pune/Mumbai rather than public bulletin scraping -- this is our inference about system feasibility, not a sourced fact.
+
+9. Fertilizer / Nutrient Management
+
+9.1 Verified official DBSKKV recommendation (kharif rice, South Konkan Coastal zone)
+
+Condition/Region                 Crop                                N                           PO                          KO                          Other nutrients                   Source
+South Konkan Coastal zone        Kharif rice                         100 kg/ha                   40 kg/ha                    40 kg/ha                                                      DBSKKV Joint Agresco2021,
+                                                                                                                                                         20 kg ZnSO/ha, plus one           Official Recommendation
+North Konkan Coastal Zone        Kharif rice (in rotation with rabi  75% RDF = 75 kg N (of 100%  40 kg (as part of 75% RDF)  40 kg (as part of 75% RDF)  foliar spray of nano P+K+ZnO
+(rice­chickpea system,           chickpea)                           RDF 754040 NPK) + 25%                                                               (0.80 ml, 0.80 ml, 2 g per ha in  DBSKKV Joint Agresco2021,
+integrated nutrient                                                  recommended N via FYM (5                                                            200 L water; 40/40/10 ppm) at     Official Recommendation
+management)                                                          t/ha)                                                                               15 Days After Transplanting
+
+                                                                                                                                                         FYM 5 t/ha (kharif rice); rabi
+                                                                                                                                                         chickpea gets 75% RDF
+                                                                                                                                                         (20400) + 25% N via FYM
+                                                                                                                                                         (1.25 t/ha)
+
+This directly satisfies the brief's "Official recommended dose" requirement with an exact, sourced, zone-specific number -- and shows the doses genuinely differ between South Konkan
+Coastal and North Konkan Coastal zones, confirming the brief's own instruction not to present one universal Konkan dose.
+
+9.2 Farmer practice vs. official dose (only where actual comparative study evidence exists)
+
+A technology-adoption study of 270 North Konkan rice growers (2005­2016 period; Meshram et al.) found an overall technology adoption index of 66.37%, with the lowest adoption specifically
+in FYM/green-manuring, urea briquette, and P & K application -- i.e., farmers under-apply P and K, and under-use organic manure, relative to recommended practice. Cost of cultivation (CostC2)
+ranged from 96,221.52/ha (low adopters) to 82,464.22/ha (high adopters), with yield rising from 29.98 quintal/ha (low adopters) to 35.98 quintal/ha (high adopters), overall average 34.21
+quintal/ha. This is a genuine farmer-practice-vs-recommended-practice comparison, sourced to a specific North Konkan farmer survey -- not a fabricated contrast. [Source: ijcmas.com
+special issue, Meshram et al.]
+
+9.3 Gap
+
+Full soil-test-based / site-specific rice fertilizer recommendation tables (as distinct from the two Agresco entries above), and any lateritic-soil-specific or acidic-soil-specific rice fertilizer response curve,
+were not retrieved in this session. The DBSKKV Department of Agronomy document that surfaced in search could not be parsed beyond fragments. Follow-up priority: directly fetch DBSKKV's
+published Agresco recommendation compilations for other years (2018­2024) and the Soil Science department's rice-specific soil-test-based dose tables.
+
+10. Existing Digital Agricultural Tools
+
+Tool                                  Main purpose                           Region-specific to Konkan?              Rice-specific?                         Evidence of limitations                 Source
+                                                                                                                                                                                                    Google Play listing;
+MahaVISTAARAI (Govt. of               One-stop farmer app: real-time         No -- state-wide, generic across        No -- general crop advisory, not a     The platform itself states it draws on  egov.eletsonline.com (2025);
+Maharashtra, Dept. of Agriculture,    weather, market prices, pest           all of Maharashtra's 152 lakh ha        rice-variety decision engine           "trusted advisory sources (Dept. of     openagrinet.global blog
+launched May 2025)                    identification/control tips, agromet   kharif cropland, not zoned to                                                  Agriculture, universities, research
+                                      advisories, warehouse/CHC info,        Konkan specifically in the sources                                             institutes)" and cites sources per      Agrospectrum India, Feb 2026
+                                      expert advice, AI chatbot in local     found                                                                          response to reduce hallucination --
+                                      languages                                                                                                             this is the platform's own claimed      tractorjunction.com;
+                                                                                                                                                            design, not an independent test of      responsibleus.com (Feb 2026)
+                                                                                                                                                            accuracy
+                                                                                                                                                                                                    -- (search for a Konkan-specific
+MahaVISTAAR Voice Telephony           Multilingual voice-call crop guidance  No -- state-wide                        No                                     Not tested independently in sources     Plantix validation study returned
+(2026 expansion)                      for feature-phone users, part of                                                                                                                              nothing usable; flagged as a gap)
+                                      MahaAgX / Agristack-aligned data                                                                                      found
+                                      layer covering 200+ datasets
+
+BharatVISTAAR (national platform,     Voice-first national AI advisory       No -- national, links to state systems  No                                     Not tested independently in sources
+integrates MahaVISTAAR, BiharKrishi,  (helpline 155261), weather from IMD,   including Maharashtra's
+AmulAI)                               market prices from Agmarknet, links                                                                                   found
+                                      to PMKISAN/PMFBY/Soil Health
+                                      Card/KCC info
+
+Plantix                               Named explicitly in the brief; a       Not evaluated for Konkan specifically   Not Konkan/rice-specific by design;    No Konkan-specific limitation
+                                      generic international crop-diagnosis   in this search -- no Konkan-            it's a multi-crop, multi-country tool  evidence found in this session --
+                                      app (pest/disease identification by    specific validation study located                                              do not claim it is "wrong" for
+                                      photo)                                                                                                                Konkan without such a study,
+                                                                                                                                                            per the brief's own instruction
+
+Kisan Suvidha, private agri-          Referenced in the brief                Not evaluated in this search --         --                                     --                                      Gap -- not searched in depth this
+
+platforms, WhatsApp advisory                                                 insufficient evidence retrieved                                                                                        session due to scope constraints
+
+groups                                                                       on their Konkan-specific use or
+
+                                                                             limitations
+
+Assessment (labelled as our inference, consistent with the brief's Part 9 instruction): based on what was found, all currently documented Maharashtra state-level tools (MahaVISTAARAI,
+MahaVISTAAR Voice Telephony, BharatVISTAAR) are generic, crop-agnostic-to-multi-crop, state/national in geographic scope, and explicitly not validated, zoned, or tuned specifically for
+Konkan agro-climatic conditions or for rice-variety-level decisions in any source located. This is a factual gap in what these platforms are designed to do, not a claim that they perform incorrectly
+-- the brief's instruction not to claim a tool is "wrong" without direct testing evidence is respected here.
+
+11. Existing Research / Papers (toward the research gap)
+
+Existing study                      Region                     Crop                            Method                                Output                        Difference from proposed         Source
+                                                                                                                                                                   Konkan Rice DSS
+Mahale, Khan, Kulkarni et       All 6 agro-climatic divisions of  Multi-crop (top-5 per division;    LSTM + expectation-              Ranked list of top5            Crop-choice recommender          ResearchGate / DOAJ, DOI
+al. (2024), Discover            Maharashtra (incl. Konkan)        rice appears in the Konkan         maximization for missing IMD     recommended crops per          (which crop to grow), not a      10.1007/s43621-024-00292-5
+Sustainability                                                    division's top5 alongside          weather data (2001­2022),        division                       rice-variety or agronomic-
+                                                                  papaya, coconut, jute,             then Random Forest for crop                                     decision engine; not evidence-   Wiley Online Library
+Shingade & Mudhalwadkar                                           watermelon)                        classification (92% accuracy                                    cited per recommendation;
+(2023), Concurrency and                                                                              reported)                                                       Konkan is one of six divisions,  MDPI Agriculture 14(8):1256
+Computation                                                                                                                                                          not a dedicated focus            (2024) review; ijraset.com
+                                "Fertile regions of               Multi-crop                         Sensor-information-based ML      Not detailed in the abstract                                    papers
+Various generic Indian crop-    Maharashtra"                                                         crop recommendation              retrieved                      Sensor/IoT-based, not
+recommendation-system                                                                                                                                                evidence/knowledge-base-
+papers (Kaggle-dataset-based;   Pan-India / generic Kaggle data   Multi-crop, including rice as one  Decision Tree / Random Forest /  Single best-crop or topN crop  based; not Konkan-specific
+Patel/AgroConsultant; Durai et  (N, P, K, pH, humidity,           of several labels                  SVM / Naive Bayes / Neural       suggestion, 90­99%+ reported
+al.; Pande et al.; others       temperature, rainfall)                                               Nets on a generic 22-crop,       accuracy on the generic        Not region-specific to
+reviewed in the MDPI 2024                                                                            2,200-sample Kaggle dataset      dataset                        Konkan at all; uses a generic
+review)                                                                                                                                                              pan-India synthetic/aggregated
+                                                                                                                                                                     dataset, not real Konkan
+                                                                                                                                                                     agronomic or DBSKKV trial
+                                                                                                                                                                     data; gives a crop label, not a
+                                                                                                                                                                     rice variety recommendation
+                                                                                                                                                                     with evidence citation
+
+11.1 Research gap (defensible, evidence-based -- not an overclaim)
+
+Based on the studies actually located in this session: 1. No system identified in this search performs rice-variety-level recommendation (as opposed to crop-choice recommendation) for
+Konkan specifically. The closest match (Mahale et al. 2024) recommends which crop to grow per Maharashtra division, not which rice variety under given soil/salinity/sowing-window conditions. 2. No
+system identified integrates DBSKKV's own official recommendations (Agresco doses, variety release data, sowing-window trial results) as a structured, citable evidence base --
+existing ML systems train on generic Kaggle/IMD aggregate datasets, not on the region's own primary agricultural-research literature. 3. No system identified provides an explanation/evidence
+layer (why a variety was selected, with a source) as opposed to a bare classification output.
+
+Per the brief's explicit instruction, this is stated as "what is missing from existing systems," not as "no one has done this before." A truly exhaustive literature search (Scopus/Web of
+Science with full-text access, which this session's search tool cannot fully replicate) might surface a closer Konkan-specific prior system; that possibility should be explicitly acknowledged in your
+thesis/report's own literature-review chapter, with a note that this AI-assisted search is not a substitute for a full systematic database search via your university library's Scopus/Web of Science access.
+
+12. Proposed DSS Architecture (built only on the verified findings above)
+
+Modules, with rule-based vs. ML-driven vs. database-driven judgement grounded in what the evidence actually supports:
+
+1. Farmer/Farm input module -- database-driven (district, soil type, field history).
+2. Soil condition module -- database-driven/rule-based: encode the four Konkan soil types (lateritic, acidic, coastal alluvial, coastal saline/Kharland) as a lookup table; only the coastal-saline
+
+    category currently has a sourced variety-mapping (Panvel1/2/3) -- the other three soil types need the DBSKKV soil-science gap in §4 filled before rule logic can be evidence-backed.
+3. Weather module -- rule-based ingestion of IMD's public weekly/seasonal rainfall bulletins and alert levels (per §8.4); a full ML weather model is not justified by current data access unless a direct IMD
+
+    data-sharing agreement is secured.
+4. Rice variety database -- database-driven; populate directly from the verified table in §2.2, explicitly tagging each field as "official"/"experimental result"/"farmer-reported"/"not verified" per record,
+
+    exactly as this report does.
+5. Variety suitability engine -- rule-based, not ML, given the current evidence base: the strongest available Konkan-specific signal (Jagtap et al.'s meteorological-week trial; the Agresco
+
+    Karjat2/Karjat7 rainfall-stability recommendation; the Panvel salinity association) are discrete, expert-validated rules, not a large enough labelled dataset for supervised ML to outperform a rule
+    engine. This is our architectural recommendation, not a sourced fact -- flag it as such in your defense.
+6. Pest/disease risk engine -- rule-based flagging only where evidence exists (e.g., flag salinity-zone fields for Panvel-line varieties; flag Konkan-wide for stem-borer/leaf-folder awareness per Hatwar
+    et al. 2025) rather than a trained pest-prediction ML model, since a comparable-across-pests Konkan incidence dataset does not currently exist (§6.3) -- an ML pest-risk model would have no genuine
+    Konkan ground truth to train on today.
+7. Nutrient recommendation engine -- rule-based, directly encoding the two verified Agresco zone-specific dose tables (§9.1) plus an explicit farmer-practice gap flag (§9.2) rather than inventing a
+      continuous response-curve model without underlying trial data.
+ 8. Evidence/knowledge base -- this report's own tables are a starting schema: every recommendation row should carry a source citation and an evidence-type tag (official/experimental/farmer-
+
+      reported/inference).
+ 9. Recommendation/ranking layer -- rule-based weighted filtering (soil  salinity  sowing window  rainfall risk  candidate varieties), explicitly not a black-box ranker, so it can produce the
+
+      explanation required in Part 12 of the brief.
+10. Explanation layer -- template-based natural-language generation over the rule engine's decision trace (which rule fired, which evidence record it cites, and a plain confidence label -- "official
+
+      recommendation" vs. "single experimental trial" vs. "farmer-reported only") -- this maps directly onto the evidence-quality tags used throughout this report.
+
+  Where ML is justifiable given current evidence: none of the sub-components above currently have enough Konkan-specific labelled data to justify supervised ML over a transparent rule engine. If
+  your team later obtains a genuine, sizeable Konkan multi-season dataset (e.g., via your planned §13 farmer/KVK interviews plus multi-year DBSKKV Agresco archives), a data-driven ranking layer could be
+  layered on top of the rule engine's output as a secondary re-ranker -- but that is a future-work recommendation, not a current-evidence-based requirement.
+
+ 13. Evidence-Based Recommendation Logic (worked, sourced example)
+
+  Example trace (built only from verified facts above -- not a fabricated demo):
+
+           Input: Field in North Konkan Coastal Zone, coastal-saline (Kharland) soil, kharif season, sowing planned for the 23rd Meteorological Week.  Soil filter: Kharland soil  candidate set restricted
+           to salinity-bred lines  Panvel1, Panvel2, Panvel3 (Source: BSKKV Kharland Research Station Panvel; Nature Sci. Rep. 2017; salt-tolerance review).  Sowing-window filter: 23rd MW is
+           the DBSKKV-trial-verified optimal window (Source: Jagtap et al. 2017) -- but note that trial tested Karjat5/Palghar1/Jaya/Swarna/Karjat2, not the Panvel line, so this step can only be applied
+           as a general Konkan sowing-window principle, not as direct variety-specific evidence for Panvel varieties. The system must say this explicitly -- this is exactly the kind of gap the
+           explanation layer must surface rather than silently paper over.  Nutrient rule: apply North Konkan Coastal Zone rice-chickpea INM dose (75% RDF 754040 NPK + 25% N via 5 t/ha FYM) if
+           the field is not in the specific South Konkan Coastal zone (Source: DBSKKV Agresco2021); apply the South Konkan Coastal dose (1004040 + 20 kg ZnSO + nano-fertilizer spray) if it is. 
+           Output: "Panvel1/2/3 recommended for salinity tolerance (official DBSKKV breeding origin, evidence strength: institutional/official); sow around the 23rd Meteorological Week per Konkan-
+           wide agronomic trial evidence (evidence strength: single peer-reviewed trial, variety not identical to your selection -- apply with caution); apply [zone-specific dose] (evidence strength:
+           official Agresco recommendation)."
+
+  This demonstrates the required behaviour: the system never says "AI predicts X" -- it names the input conditions used, the evidence type and strength for each step, and is explicit about where evidence
+  doesn't fully cover the exact variety/condition combination.
+
+ 14. Farmer / KVK Field-Validation Questionnaire
+
+  (To be administered only after DSS design is finalized; no interviews have been conducted -- all items below are proposed questions, not results.)
+  A. Variety choice 1. Which rice variety/varieties did you grow this kharif season, and last kharif season? 2. Why did you choose this variety (yield, grain quality/market price, seed availability,
+  pest/disease history, advice from KVK/dealer, family tradition)? 3. Have you changed varieties in the last 5 years? What prompted the change?
+  B. Timing decisions 4. When did you sow/transplant this season? Was this earlier, later, or the same as your usual practice, and why? 5. What is the latest decision you feel you made "too late" this
+  season (sowing, fertilizer, pest spray, harvest)? What would have helped you decide earlier?
+  C. Pests and diseases 6. Which pest or disease caused you the most damage in the last 2­3 seasons? 7. How do you currently identify a pest/disease problem, and how do you decide what to do about
+  it?
+  D. Fertilizer and soil 8. What fertilizer dose and schedule do you currently use for rice? Is it based on a recommendation, a dealer's suggestion, or your own experience? 9. Have you had your soil
+  tested? If yes, did you follow the resulting recommendation? If no, why not?
+  E. Weather and salinity 10. Have you experienced crop loss from excess rain/flooding, or from drought/dry spells, in recent seasons? Approximately how much loss? 11. (Coastal/creek-side farmers
+  only) Do you experience salinity problems in your field? How do you currently manage this?
+  F. Digital tools 12. Do you currently use any mobile app or digital tool for farming advice (e.g., MahaVISTAAR, Plantix, WhatsApp groups, others)? What do you use it for, and what does it not help with?
+  13. If a new tool gave you a rice-variety recommendation with a clear reason and a source, what would make you trust and use it?
+G. For agricultural officers / KVK experts (separate short set) 14. In your experience, which of DBSKKV's rice variety recommendations do farmers in your area actually follow, and which do they
+not -- and why? 15. What is the single biggest gap between official recommendations and what you observe farmers doing in the field?
+(Per the brief's explicit instruction: no interview results are presented here, because no interviews have been conducted.)
+
+15. Dataset Structure Required for Implementation
+
+Proposed minimum schema (derived from what this report's evidence base actually contains -- not aspirational):
+    varieties: variety_id, name, aliases, grain_type, duration_days_min, duration_days_max, plant_height_cm, developing_institution, release_year, source_citation, evidence_type
+    (official/experimental/farmer-reported)
+    variety_soil_suitability: variety_id, soil_type, evidence_type, source_citation
+    variety_pest_disease_resistance: variety_id, pest_or_disease, resistance_level (resistant/moderately resistant/tolerant/not documented), source_citation
+    variety_yield_evidence: variety_id, yield_t_ha_min, yield_t_ha_max, trial_type (station/state/adaptive/farmer-field), source_citation
+    sowing_window_trials: trial_id, met_week, variety_id, location, season_year, grain_yield_kg_ha, straw_yield_kg_ha, source_citation
+    fertilizer_recommendations: zone (e.g., "South Konkan Coastal", "North Konkan Coastal"), crop, N_kg_ha, P2O5_kg_ha, K2O_kg_ha, micronutrients, source_citation, year_of_recommendation
+    pest_evidence: pest_name, konkan_location, year, evidence_description, control_measure_tested, efficacy_percent, source_citation
+    weather_records: district, met_week_or_date, rainfall_mm, actual_vs_normal_percent, alert_level, source_citation
+    digital_tools: tool_name, scope (state/national), rice_specific (bool), konkan_specific (bool), source_citation
+    evidence_gaps_log: topic, what_was_sought, what_was_found, status (not_verified/insufficient_evidence)
+
+16. Limitations / Missing Evidence (explicit, as required)
+
+1. Full DBSKKV variety catalogue (all 25 varieties + 5 hybrids individually documented) was not retrievable as clean, complete text in this session -- only a subset (Karjat2/3/7/8/184, Ratnagiri7,
+    Panvel1/2/3, Sahyadri) has sourced agronomic detail here.
+
+2. District-wise sowing-window tables (Sindhudurg, Ratnagiri, Palghar specifically) referenced in a DBSKKV Agronomy document could not be extracted as usable tables -- the source returned
+    fragmentary OCR only.
+
+3. Acidic soil and coastal-alluvial soil characteristics (pH range, nutrient constraints) for Konkan were not located.
+4. Quantitative, comparable Konkan incidence/severity data for bacterial leaf blight, sheath blight, brown planthopper, and gall midge was not located -- only stem borer/leaf folder/case
+
+    worm (Hatwar et al. 2025) and a qualitative blast statement (IntechOpen 2021) were found.
+5. PMFBY district-level rice claim data for Ratnagiri, Sindhudurg or Raigad was not retrieved in this session -- per the brief's instruction, this is stated plainly rather than estimated: Evidence not
+
+    found / insufficient evidence.
+6. Humidity and multi-decadal temperature normals for the three priority districts were not retrieved.
+7. Plantix / Kisan Suvidha Konkan-specific validation or limitation studies were not located -- absence of evidence is not evidence of a flaw in these tools, per the brief's own instruction.
+8. This search was conducted via a general web search tool, not a Scopus/Web of Science systematic review -- a genuinely exhaustive "research gap" claim requires that fuller academic-database
+
+    search, which your university's library access can provide and this report cannot fully substitute for.
+
+17. Complete Source List (all cited above, with URLs where available)
+
+1. Dr. Balasaheb Sawant Konkan Krishi Vidyapeeth -- institutional profile: https://indiaagronet.com/Agri-Universities/Dr-Balasaheb-Sawant-Konkan-Krishi-Vidyapeeth.html
+2. DBSKKV Research/Varieties page: https://old.dbskkv.org/Research/Varieties.html
+3. Shinde, A.K. et al. (2018). "Doubling Farmers' Income through DBSKKV Interventions." Advanced Agricultural Research & Technology Journal, II(2). https://www.isasat.org/vol-ii-issue-ii-july-
+
+    2018/3_AARJ_II_2_Shinde%20et%20al_128-140.pdf
+ 4. "Released and notified varieties of rice by DBSKKV" (table extract): https://www.researchgate.net/figure/Released-and-notified-varieties-of-rice-by-Dr-Balasaheb-Sawant-Konkan-Krishi-
+      Vidyapeeth_tbl3_325103000
+
+ 5. Ratnagiri 7 (RTN RR-4) variety release paper (2018): https://www.ijcmas.com/abstractview.php?ID=7655&vol=7-4-2018&SNo=389
+ 6. Meshram, A.V. et al. "Examine the Sustainability of Rice Varieties in North Konkan." https://www.ijcmas.com/special/11/A.%20V.%20Meshram,%20et%20al.pdf
+ 7. "Karjat184, an early rice variety for Konkan region of Maharashtra state." https://www.researchgate.net/publication/334681259_Karjat-
+
+      184_an_early_rice_variety_for_Konkan_region_of_Maharashtra_state
+ 8. "Super fine rice variety Karjat 8 for low land areas of Maharashtra State."
+
+      https://www.researchgate.net/publication/296389929_Super_fine_rice_variety_Karjat_8_for_low_land_areas_of_Maharashtra_State
+ 9. The Better India (2018). "100 Years & Over 20 Varieties: Celebrating India's First Rice Research Institute." https://thebetterindia.com/131542/rice-research-institute-karjat-maharashtra/
+10. DBSKKV Joint Agresco2021 English Recommendations (official PDF): https://www.dbskkv.org/assets/pdf/recommendations/Joint%20Agresco-
+
+      2021%20English%20Recommendations%20New%20Final.pdf
+11. Jagtap, D.N., Mahadkar, U.V., Chavan, S.A. (2017). "Response of rice varieties to different sowing windows under Konkan conditions." Agricultural Science Digest, 37(1):78-80.
+
+      https://arccjournals.com/journal/agricultural-science-digest/D-4487
+12. ICAR-CRRI contingency plan for rice: https://icar-crri.in/contingence-plan/ and https://crri.icar.gov.in/cp.php
+13. DBSKKV Department of Agronomy document (fragmentary retrieval): https://api.dbskkv.org/v1/file/document/Department%20of%20Agronomy.docx1703572262508.pdf/
+14. IntechOpen (2021). "Rice Blast Disease in India: Present Status and Future Challenges." https://www.intechopen.com/chapters/77503
+15. Hatwar, N.K., Jalgaonkar, V.N., Naik, K.V., Meshram, N.A., Jadhav, A. (2025). "Assessing the efficacy of solvent based botanical extracts on major rice insect pests in the Konkan region of Maharashtra."
+
+      Vegetos. https://doi.org/10.1007/s42535-025-01306-x
+16. "Efficacy of different biopesticides against stem borer infesting rice" (2025): https://www.biochemjournal.com/archives/2025/vol9issue10S/PartO/S-9-10-104-725.pdf
+17. "Indigenous traditional practices for eco-friendly management of insect/pest in Maharashtra, India": https://core.ac.uk/works/71122942
+18. IMD Mumbai -- state rainfall bulletin (Konkan-Goa subdivision, 2026 season): https://mausam.imd.gov.in/mumbai/mcdata/state_rain.pdf
+19. IMD Mumbai -- weekly weather report: https://mausam.imd.gov.in/mumbai/mcdata/weekly.pdf
+20. News on Air (2025). "IMD Issues Red Alert for Ratnagiri, Raigad as Heavy Rains Lash Maharashtra." https://www.newsonair.gov.in/imd-issues-red-alert-for-ratnagiri-raigad-as-heavy-rains-lash-
+
+      maharashtra
+21. Deccan Herald -- Konkan heavy rainfall reports: https://www.deccanherald.com/india/konkan-districts-get-heavy-rainfall-1027906.html ; https://www.deccanherald.com/amp/story/india%2Fheavy-rain-
+
+      lashes-maharashtra-676148.html
+22. DBSKKV silicon-in-Konkan-rice-soils study: https://archive.dbskkv.org/collection/367/document/2077
+23. Nature Scientific Reports (2017). "Identification of mega-environments and rice genotypes for general and specific adaptation to saline and alkaline stresses in India."
+
+      https://www.nature.com/articles/s41598-017-08532-7
+24. "Rice breeding for salt tolerance" (review, ResearchGate): https://www.researchgate.net/publication/281317520_Rice_breeding_for_salt_tolerance
+25. Mahale, Y. et al. (2024). "Crop recommendation and forecasting system for Maharashtra using machine learning with LSTM." Discover Sustainability, 5(1). https://doi.org/10.1007/s43621-024-00292-5
+26. Shingade, S.D. & Mudhalwadkar, R.P. (2023). "Sensor information-based crop recommendation system using machine learning for the fertile regions of Maharashtra." Concurrency and Computation:
+
+      Practice and Experience. https://onlinelibrary.wiley.com/doi/abs/10.1002/cpe.7774
+27. MDPI Agriculture (2024). "A Decision Support System for Crop Recommendation Using Machine Learning Classification Algorithms." https://www.mdpi.com/2077-0472/14/8/1256
+28. MahaVISTAAR-AI, Google Play listing: https://play.google.com/store/apps/details?id=in.gov.mahapocra.mahavistaarai&hl=en
+29. eGov eLets (2025). "Maharashtra Launches `MahaVISTAAR-AI'." https://egov.eletsonline.com/2025/05/maharashtra-launches-mahavistaar-ai-to-digitally-empower-farmers-with-ai-driven-services/
+30. Agrospectrum India (2026). "Maharashtra launches MahaAgX and India's First Bhili Tribal LLM." https://agrospectrumindia.com/2026/02/22/maharashtra-launches-mahaagx-and-indias-first-bhili-tribal-
+
+      llm-at-ai4agri2026.html
+31. OpenAgriNet blog -- "Journey of MahaVISTAAR": https://openagrinet.global/blogs/journey-of-mahavistaar-creating-open-networks-powered-by-ai
+32. TractorJunction (2026). "Bharat-VISTAAR: India's AI Digital Platform for Farmers." https://www.tractorjunction.com/agriculture-news/bharat-vistaar-indias-ai-digital-platform-for-farmers-full-details-
+
+      benefits/
+
+ VERIFIED FACTS
+    DBSKKV has released 25 improved rice varieties and 5 hybrids since 1972 (institutional source).
+    Karjat2 and Karjat7 are officially recommended (DBSKKV Agresco2021) for rainfall-variability yield stability in Konkan kharif rice, with recommended or early (15 DAS) transplanting.
+    Official DBSKKV fertilizer doses exist and differ by zone: South Konkan Coastal = 1004040 NPK + 20 kg ZnSO/ha + nano-fertilizer spray; North Konkan Coastal (rice-chickpea INM) = 75% RDF
+    (754040) + 25% N via 5 t FYM/ha.
+    A DBSKKV field trial (Jagtap et al. 2017) found the 23rd Meteorological Week to be the highest-yielding sowing window for Konkan kharif rice among the windows and varieties tested, with Swarna and
+    Jaya as the best-performing varieties in that trial.
+    Panvel1, Panvel2, Panvel3 originate from BSKKV's Kharland Research Station, Panvel, and are documented as bred for coastal saline/alkaline conditions.
+    Ratnagiri7, Karjat8, and Karjat184 each have individually sourced duration, yield and pest/disease-resistance data from their peer-reviewed release papers.
+    Konkan-specific pest-control efficacy evidence exists for stem borer, leaf folder and rice case worm (Hatwar et al. 2025; biopesticide trial 2025).
+    IMD's 2026 seasonal bulletin shows large rainfall departures across the target districts (Raigad +57%, Ratnagiri +23%, Sindhudurg -27%, Thane +53%), confirming high inter-district monsoon
+    variability even within Konkan in a single season.
+    MahaVISTAARAI, MahaVISTAAR Voice Telephony, and BharatVISTAAR are real, currently operating (2025­2026) state/national digital advisory platforms, generic in crop and geographic scope.
+
+RESEARCH INFERENCES
+
+    The strongest available proxy for "which pests matter most in Konkan" is variety-level bred resistance (e.g., Ratnagiri7's resistance to stem borer/leaf folder/gall midge), since breeders would not
+    target resistance to locally irrelevant pests -- this is our inference, not a direct incidence measurement.
+    A rule-based (not ML) architecture is currently better justified than a trained ML model for most DSS sub-components, because the Konkan-specific evidence base located is composed of discrete
+    expert trials/recommendations rather than a large labelled dataset.
+    No system located in this search performs Konkan-specific, variety-level, evidence-cited rice recommendation -- supporting a genuine research gap, though not an exhaustive-search-confirmed one.
+
+NOT VERIFIED
+
+    Ratnagiri1 through Ratnagiri6 (except Ratnagiri7) and Phondaghat1 as individually documented, currently recommended varieties.
+    Acidic soil and coastal-alluvial soil pH ranges, nutrient constraints, and variety mappings for Konkan.
+    Comparable incidence/severity/economic-loss data across bacterial leaf blight, sheath blight, brown planthopper, and gall midge specifically in Konkan.
+    PMFBY district-level rice claims data for Ratnagiri, Sindhudurg, or Raigad.
+    Multi-decadal rainfall averages, humidity data, and dry-spell frequency statistics for the three priority districts.
+    Any Konkan-specific validation or limitation study for Plantix or Kisan Suvidha.
+    Whether an exhaustive Scopus/Web of Science search would surface a prior Konkan-specific rice variety DSS not found by this general web search.
+

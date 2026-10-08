@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "crop": "paddy/rice",
+    "region": "Konkan, Maharashtra",
+    "principle": "IPM-first: non-chemical actions are listed before any chemical; chemicals only when scouting/ETL justifies.",
+    "types": ["monitoring", "cultural", "mechanical", "variety"],
+    "note": "Every action is non-chemical and carries source_pdf + line. No chemical name or dose belongs in this file."
+  },
+  "actions": [
+    {"target": "rice (general)", "type": "cultural", "action": "Maintain standing water level of 5-10 cm in the rice field (adjust per growth stage: 5-7 cm at tillering/flowering, 3-5 cm at dead-heart stage)", "timing": "throughout the season, per stage", "source_pdf": "advisory-marathi.ocr", "line": 164},
+    {"target": "rice (general)", "type": "cultural", "action": "At tillering and panicle-formation stages keep field water level 5-7 cm; at dead-heart stage regulate it to 3-5 cm", "timing": "tillering to flowering; dead-heart stage", "source_pdf": "advisory-marathi.ocr", "line": 294},
+    {"target": "weeds in rice", "type": "mechanical", "action": "Where field drainage is not possible, control weeds by hoeing twice in kharif rice (25 and 45 days after transplanting) and once in rabi rice (40 DAT)", "timing": "25 and 45 DAT (kharif); 40 DAT (rabi)", "source_pdf": "1. Paddy.ocr", "line": 107},
+    {"target": "weeds in rice", "type": "mechanical", "action": "Use the KKV cono weeder for mechanical weeding in rice (capacity about 0.011 ha/hour; leaves no weed, works in puddled fields)", "timing": "as needed during vegetative stage", "source_pdf": "1. Paddy.ocr", "line": 430},
+    {"target": "weeds in rice nursery", "type": "cultural", "action": "Spread Giripushpa (Tephrosia) green manure at 1 tonne/ha in nursery rows for effective weed control and stronger seedlings", "timing": "nursery stage", "source_pdf": "1. Paddy.ocr", "line": 125},
+    {"target": "rice stem borer", "type": "monitoring", "action": "Scout fields and treat only when infestation reaches the economic threshold: 5% dead hearts or 1 female moth per square metre", "timing": "continuous monitoring through vegetative stage", "source_pdf": "1. Paddy.ocr", "line": 350},
+    {"target": "rice blast and bacterial leaf blight", "type": "variety", "action": "In problem fields prefer resistant variety BM-4 (Karjat Shatabdi): resistant to stem borer, bacterial blight and blast", "timing": "next season sowing decision", "source_pdf": "Joint Agresco-2019", "line": 9},
+    {"target": "rice leaf blast and bacterial leaf blight", "type": "variety", "action": "Consider Ratnagiri-7 (RTN RR4): resistant to stem borer, leaf folder, gall midge; moderately resistant to leaf blast and bacterial leaf blight", "timing": "next season sowing decision", "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 89},
+    {"target": "rice leaf blast and bacterial leaf blight", "type": "variety", "action": "Consider Karjat-184: moderately resistant to bacterial leaf blight and blast, tolerant to brown planthopper and white-backed planthopper", "timing": "next season sowing decision", "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 80},
+    {"target": "rice leaf blast", "type": "variety", "action": "Consider Karjat-8: resistant to neck blast and moderately resistant to leaf blast (low-land areas)", "timing": "next season sowing decision", "source_pdf": "Konkan_Rice_DSS_Research_Report", "line": 69}
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "classes": [
+    "Bacterial_Leaf_Blight",
+    "Brown_Spot",
+    "Healthy",
+    "Leaf_Blast",
+    "Leaf_Scald",
+    "Sheath_Blight"
+  ],
+  "graph_input_size": 224,
+  "recommended_input_size": 256,
+  "input_shape": [
+    1,
+    256,
+    256,
+    3
+  ],
+  "channels_last": true,
+  "value_range": [
+    0,
+    255
+  ],
+  "dtype": "float32",
+  "steps": [
+    "decode RGB",
+    "resize to exactly 256x256 with a high-quality filter (Lanczos / imageSmoothingQuality=high / INTER_AREA)",
+    "emit (1, 256, 256, 3) float32 in 0..255; graph resizes to 224"
+  ],
+  "do_not": [
+    "nearest-neighbour resize",
+    "feed any other HxW (the input is fixed)",
+    "divide by 255"
+  ],
+  "val_macro_f1": 0.9488,
+  "test_macro_f1": 0.9315,
+  "worst_class_recall": 0.8804,
+  "abstain_threshold": 0.5
+}

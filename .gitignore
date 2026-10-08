@@ -1,0 +1,42 @@
+# ── AgriSense .gitignore ─────────────────────────────────────────────
+# Only source code, rules, docs, tests, and cited KB sources are pushed.
+# Heavy data (PDFs, datasets, climatology, bundles) stays local.
+
+# Local tooling / agent config
+.opencode/
+.tmp/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Heavy data — never pushed
+media/
+*.nc
+*.xls
+*.xlsx
+*.zip
+*.ipynb
+
+# Friend's dataset + generated model artifacts
+konkan_rice_disease_risk_10k.csv.xls
+ml/models/
+
+# kb/raw: keep ONLY the source files cited by rules/registry (validator needs
+# them to resolve citations). Everything else is raw research data.
+kb/raw/*
+!kb/raw/1. Paddy.ocr.txt
+!kb/raw/Joint Agresco-2018 English Recomendations.txt
+!kb/raw/Joint Agresco-2019 English Recomendations.txt
+!kb/raw/Joint Agresco-2020 English Recomendations.txt
+!kb/raw/Joint Agresco-2022 English Recommendations.txt
+!kb/raw/Joint Agresco-2023 English Recommendations.  MPKV.txt
+!kb/raw/Konkan_Rice_DSS_Research_Report.txt
+!kb/raw/advisory-marathi.ocr.txt
+!kb/raw/cibrc/
+kb/raw/cibrc/*
+!kb/raw/cibrc/banned_refused_restricted.txt
+!kb/raw/cibrc/formulations_registered_31.03.2026.txt
+!kb/raw/cibrc/mup_bio_insecticides_31.03.2026.txt
+!kb/raw/cibrc/mup_fungicides_31.03.2026.txt
+!kb/raw/cibrc/mup_herbicides_31.03.2026.txt
+!kb/raw/cibrc/mup_insecticides_31.03.2026.txt
