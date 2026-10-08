@@ -242,7 +242,7 @@ no strays. Dichlorvos banned; Mancozeb + Azoxystrobin+Mancozeb + Oxiflufen restr
 | Path | Purpose |
 |---|---|
 | `ML_PLAN.md` | 10-hour sprint plan, hard constraints, research contributions |
-| `context.md` | THIS FILE — project context, findings, rules, instructions |
+| `ML_CONTEXT.md` | THIS FILE — project context, findings, rules, instructions |
 | `README.md` | Beginner-friendly overview (findings, facts, rules, working, setup) |
 | `kb/INDEX.md` | What was extracted from which file, coverage status |
 | `kb/rules/fert_pest.json` | Fertilizer/pesticide/weed rules (all cited) |

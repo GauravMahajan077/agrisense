@@ -5,7 +5,7 @@
 > *"How risky is my crop right now?"*, *"Should I sell now or wait?"*.
 >
 > This README is written for **beginners** — no ML background needed. For the full technical
-> record see [`context.md`](context.md) (everything we did, every finding, every rule).
+> record see [`ML_CONTEXT.md`](ML_CONTEXT.md) (everything we did, every finding, every rule).
 
 ---
 
@@ -187,7 +187,7 @@ Every response includes `model_version` and `needs_expert`.
 
 | File | What it is |
 |---|---|
-| [`context.md`](context.md) | **Full technical record** — everything we did, every finding, every rule |
+| [`ML_CONTEXT.md`](ML_CONTEXT.md) | **Full technical record** — everything we did, every finding, every rule |
 | [`ML_PLAN.md`](ML_PLAN.md) | The 10-hour sprint plan + research contributions |
 | [`kb/INDEX.md`](kb/INDEX.md) | What was extracted from which PDF |
 | [`kb/rules/`](kb/rules/) | The actual rules (fert_pest.json, ipm.json, varieties.json, registry.json) |
