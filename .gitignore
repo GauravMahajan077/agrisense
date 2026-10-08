@@ -4,6 +4,7 @@
 
 # Local tooling / agent config
 .opencode/
+.opencode - Copy/
 .tmp/
 .pytest_cache/
 __pycache__/
