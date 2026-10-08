@@ -178,12 +178,34 @@ class Pipeline:
         self.artifact: dict = {}
 
     # ---- 1. load ----
-    def load_data(self) -> pd.DataFrame:
+    def _resolve_data_path(self) -> Path:
+        """Find the dataset file. Handles noob mistakes: pointing at the dataset
+        folder instead of the file, or a wrong path on Kaggle."""
         path = Path(self.cfg["data_path"])
-        if not path.exists():
-            raise SystemExit(f"data not found: {path}\n"
-                             "Place konkan_rice_disease_risk_10k.csv.xls at the project root "
-                             "(or set CFG['data_path']). See ml/risk_xgb/README.md.")
+        if path.is_file():
+            return path
+        expected = "konkan_rice_disease_risk_10k.csv.xls"
+        roots = []
+        if path.exists():          # a directory (dataset folder)
+            roots.append(path)
+        kaggle_input = Path("/kaggle/input")
+        if kaggle_input.exists():  # Kaggle: search all attached inputs
+            roots.append(kaggle_input)
+        for root in roots:
+            for p in root.rglob("*"):
+                if p.is_file() and p.name == expected:
+                    print(f"  data: found {p}")
+                    return p
+        raise SystemExit(
+            f"data not found: {self.cfg['data_path']}\n"
+            f"Expected file '{expected}' inside a dataset folder.\n"
+            f"On Kaggle: click the file in the Data panel (right side) and copy its path "
+            f"into CFG['data_path'] — it must end with the filename, e.g.\n"
+            f"  /kaggle/input/konkan-rice-disease-risk/konkan_rice_disease_risk_10k.csv.xls\n"
+            f"Locally: place the file at the project root (or set CFG['data_path']).")
+
+    def load_data(self) -> pd.DataFrame:
+        path = self._resolve_data_path()
         # The file is CSV content with a .xls extension.
         df = pd.read_csv(path)
         missing = [c for c in CATEGORICALS + NUMERICS + [TARGET] if c not in df.columns]
