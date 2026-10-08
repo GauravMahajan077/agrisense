@@ -42,8 +42,12 @@ except Exception:  # pragma: no cover — xgboost absent -> predict falls back t
 
 PIPELINE_VERSION = "risk-xgb-v1"
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
+try:
+    HERE = Path(__file__).resolve().parent
+    ROOT = HERE.parents[1]
+except NameError:  # notebook (Kaggle): __file__ is not defined -> use cwd
+    HERE = Path.cwd()
+    ROOT = HERE
 DEFAULT_MODEL_DIR = ROOT / "ml" / "models"
 
 CATEGORICALS = ["growth_stage", "rice_variety_type", "nitrogen_applied_level",
