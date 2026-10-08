@@ -57,6 +57,27 @@ Response:
  "model_version": "risk-v1"}
 ```
 
+**XGBoost variant (`ml/risk_xgb/`, `model_version: "risk-xgb-v1"`)** — when
+`ml/models/risk_xgb_artifact.json` + `risk_xgb_model.json` are present, the backend
+calls `risk_xgb.predict()` with **raw field features** instead of the 5 engineered
+`RiskInput` fields. Request adds the field context; `primary_disease_risk` is the
+most likely class from `/ml/disease`:
+```json
+{"growth_stage":"Flowering","rice_variety_type":"Short Duration (Karjat-3)",
+ "nitrogen_applied_level":"Excessive","primary_disease_risk":"Leaf Blast",
+ "temperature_min":20.0,"temperature_max":28.0,"relative_humidity":92.0,
+ "rainfall_7d_forecast":80.0,"consecutive_rainy_days":6,
+ "field_water_level_cm":12.0,"soil_ph":5.8}
+```
+Response shape is unchanged (`score`, `interval`, `priority`, `drivers`,
+`needs_expert`). `predict()` never raises: missing values → NaN (XGBoost native),
+unseen categories → all-zero one-hot, out-of-range → clipped to training range,
+degenerate input or missing artifact → linear-prior fallback
+(`model_version: "risk-xgb-fallback-priors"`, `needs_expert: true`). Priority bands
+match the linear engine: high ≥ 0.70, medium ≥ 0.45, low < 0.45. See
+`ml/risk_xgb/README.md` for training + honest caveats (the 10k dataset is synthetic
+and deterministic — R² 0.926 reflects the generator, not real-world generalization).
+
 ## POST /ml/price (MandiLens artifacts)
 Request: `{"commodity":"rice","market":"...","state":"Maharashtra"}`
 Response:

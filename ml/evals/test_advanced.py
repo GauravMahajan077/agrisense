@@ -30,6 +30,10 @@ from abstain import (  # noqa: E402
 )
 import crop_leaf  # noqa: E402
 
+RISK_XGB = ROOT / "ml" / "risk_xgb"
+sys.path.insert(0, str(RISK_XGB))
+from risk_xgb import predict as xgb_predict  # noqa: E402
+
 RULES = load_rules()
 REGISTRY = RULES["registry"]["entries"]
 DISEASES = ["Bacterial_Leaf_Blight", "Brown_Spot", "Leaf_Blast",
@@ -674,6 +678,73 @@ class TestIntegration:
             [sys.executable, "ml/evals/rule_validator.py"],
             cwd=str(ROOT), env=env, capture_output=True, text=True, timeout=300)
         assert proc.returncode == 0, f"validator failed:\n{proc.stdout}\n{proc.stderr}"
+
+
+# ─────────────────────────── H. XGBoost risk model ───────────────────────────
+
+FIELD = {
+    "growth_stage": "Flowering",
+    "rice_variety_type": "Short Duration (Karjat-3)",
+    "nitrogen_applied_level": "Excessive",
+    "primary_disease_risk": "Leaf Blast",
+    "temperature_min": 20.0, "temperature_max": 28.0,
+    "relative_humidity": 92.0, "rainfall_7d_forecast": 80.0,
+    "consecutive_rainy_days": 6, "field_water_level_cm": 12.0, "soil_ph": 5.8,
+}
+
+
+class TestRiskXgb:
+    """Contract + robustness for risk_xgb.predict(). Model-specific assertions are
+    guarded on the artifact being present (ml/models/ is gitignored, so a fresh
+    clone runs the fallback path)."""
+
+    def test_contract_shape(self):
+        out = xgb_predict(FIELD)
+        assert set(out) >= {"score", "interval", "priority", "drivers",
+                            "model_version", "needs_expert"}
+        assert 0.0 <= out["score"] <= 1.0
+        assert out["interval"][0] <= out["score"] <= out["interval"][1]
+        assert out["priority"] in {"low", "medium", "high"}
+
+    def test_healthy_low_blast_high(self):
+        healthy = xgb_predict({**FIELD, "primary_disease_risk": "None (Healthy)",
+                               "relative_humidity": 60.0, "rainfall_7d_forecast": 5.0,
+                               "consecutive_rainy_days": 0})
+        blast = xgb_predict(FIELD)
+        if healthy["model_version"] == "risk-xgb-v1":  # model path active
+            assert healthy["score"] < blast["score"]
+            assert healthy["priority"] == "low"
+            assert blast["priority"] in {"high", "medium"}
+
+    def test_never_raises_on_garbage(self):
+        for bad in [{}, {"growth_stage": "Booting"}, {"soil_ph": "abc"},
+                    {"temperature_min": None}, {"primary_disease_risk": 123}]:
+            out = xgb_predict(bad)
+            assert 0.0 <= out["score"] <= 1.0
+            assert out["priority"] in {"low", "medium", "high"}
+
+    def test_fallback_when_artifact_missing(self, tmp_path):
+        out = xgb_predict(FIELD, model_dir=tmp_path)
+        assert out["model_version"] == "risk-xgb-fallback-priors"
+        assert out["needs_expert"] is True
+
+    def test_unseen_category_and_out_of_range(self):
+        out = xgb_predict({**FIELD, "growth_stage": "Booting",
+                           "rice_variety_type": "Unknown", "rainfall_7d_forecast": 9999.0})
+        assert 0.0 <= out["score"] <= 1.0
+        assert out["priority"] in {"low", "medium", "high"}
+
+    def test_artifact_schema_when_present(self):
+        art_path = ROOT / "ml" / "models" / "risk_xgb_artifact.json"
+        if not art_path.exists():
+            pytest.skip("artifact not present — run the pipeline first")
+        art = json.loads(art_path.read_text(encoding="utf-8"))
+        assert art["model_type"] == "xgboost"
+        assert len(art["feature_order"]) == 24
+        assert set(art["cat_maps"]) == {"growth_stage", "rice_variety_type",
+                                        "nitrogen_applied_level", "primary_disease_risk"}
+        assert art["calibration"]["type"] == "isotonic"
+        assert 0.0 <= art["conformal"]["q"] <= 1.0
 
 
 if __name__ == "__main__":

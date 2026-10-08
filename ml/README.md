@@ -7,7 +7,7 @@
 | Thing | Where | Note |
 |---|---|---|
 | Training / fine-tune (`kaggle/field_finetune.py`) | **Kaggle GPU only** | NEVER local (thermal damage constraint) |
-| Risk artifact fit (`kaggle/fit_risk.py`) | Kaggle CPU/GPU | seconds |
+| Risk model fit (`risk_xgb/risk_xgb.py`) | local CPU (2–3 s) or Kaggle | 10k rows, light |
 | Inference of `.tflite` model | Backend server / Kaggle | local machine = light tests only (1–2 images max) |
 | KB extraction (pdfplumber/pdftotext) | local, OK | already done → `../kb/raw/` |
 | Recommender / risk / advisory / price (pure Python) | backend | no ML runtime, just JSON rules + arithmetic |
@@ -17,15 +17,16 @@
 - `abstain.py` — confidence/margin/healthy thresholds → `needs_expert` routing (tested).
 - `recommender.py` — KB rule filter + weighted rank, **IPM-first** (non-chemical actions returned before any pesticide), **strict** disease↔chemical matching, **CIB&RC banned-chemical hard gate** (`safety_flags` + `needs_expert` instead of a banned product), per-item `registry` legality block (tested; all 5 foliar classes covered — Brown_Spot: 4 in-label MUP rules, Leaf_Scald: 3 off-label IRRI-actives rules).
 - `risk_engine.py` — sigmoid score + isotonic calib + conformal interval via `models/risk_artifact.json` (fallback priors built-in).
+- `risk_xgb/` — **XGBoost risk model** (`risk-xgb-v1`): trains on the friend's 10k xlsheet (raw field features, `risk_level` dropped as leakage), writes `models/risk_xgb_artifact.json` + `risk_xgb_model.json`, and `predict()` never fails on real data (NaN/unseen-category/out-of-range/degenerate → clipped or prior fallback). Notebook = 3-cell wrapper + `split_cells.py` → `cells/`. See `risk_xgb/README.md`.
 - `price.py` — MandiLens published snapshot → `/ml/price` shape, honest `sell|wait` signal + reliability.
 - `advisory.py` — deterministic EN/MR templates, always `expert_pending=true`.
 
 ## Kaggle run order (today)
 1. Upload: `agrisense_bundle.zip`, dataset folder, field photos, this `ml/` folder.
 2. `kaggle/field_finetune.py` → new bundle + `abstain.json` + `field_probs.csv` (EDIT the 3 CFG paths first).
-3. `kaggle/fit_risk.py` (needs `risk_features.csv`; build from backend logs or manual annotation).
-   Future: train XGBoost risk model on `../konkan_rice_disease_risk_10k.csv.xls` (10k rows, validated —
-   but drop `risk_level` from features: it leaks the healthy label, see validator WARN).
+3. `risk_xgb/risk_xgb.py` → `models/risk_xgb_artifact.json` + `risk_xgb_model.json` (train on
+   `../konkan_rice_disease_risk_10k.csv.xls`; `risk_level` is dropped — it leaks the healthy label).
+   Old `kaggle/fit_risk.py` (5 engineered features) is superseded.
 4. Download artifacts → backend consumes.
 
 ## Inference contract (do not break)
